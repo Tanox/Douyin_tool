@@ -1,8 +1,8 @@
 ---
-version: 1.4
+version: 1.5
 last_updated: 2025-11-08
 author: SutChan
-changelog: "完成文档清理和格式规范统一，新增项目描述文档"
+changelog: "更新文档版本记录，添加文档结构优化报告"
 ---
 # 抖音Web端界面UI定制工具 - 文档版本登记表
 
@@ -52,6 +52,7 @@ changelog: "完成文档清理和格式规范统一，新增项目描述文档"
 | docs/CHANGELOG.md | 1.0 | 2025-11-07 | 2025-11-07 | SutChan | 初始归档 |
 | docs/DOCUMENT_VERSION_REGISTRY.md | 1.4 | 2025-11-07 | 2025-11-08 | SutChan | 完成文档清理和格式规范统一，新增项目描述文档 |
 | docs/DOCUMENT_FORMAT_UNIFICATION_REPORT.md | 1.0 | 2025-11-08 | 2025-11-08 | SutChan | 初始创建 |
+| docs/DOCUMENT_STRUCTURE_OPTIMIZATION_REPORT.md | 1.0 | 2025-11-08 | 2025-11-08 | SutChan | 初始创建 |
 | docs/06-开发指南/用户指南.md | 1.0 | 2025-11-08 | 2025-11-08 | SutChan | 用户使用指南 |
 | docs/06-开发指南/详细开发指南.md | 1.0 | 2025-11-08 | 2025-11-08 | SutChan | 详细开发文档 |
 | docs/06-开发指南/贡献指南.md | 1.0 | 2025-11-08 | 2025-11-08 | SutChan | 贡献指南 |
