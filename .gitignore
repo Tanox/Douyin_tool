@@ -35,3 +35,4 @@ coverage/
 *.temp
 .cache/
 /docs
+/docs
