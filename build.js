@@ -1,285 +1,192 @@
 const fs = require('fs');
 const path = require('path');
 
-// 读取package.json获取版本信息
-const pkgPath = path.join(__dirname, 'package.json');
-let pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-
-// 版本号管理工具类
-class VersionManager {
-  constructor(packageData, packagePath) {
-    this.packageData = packageData;
-    this.packagePath = packagePath;
-    this.currentVersion = packageData.version;
-  }
-
-  // 解析版本号为数组 [major, minor, patch]
-  parseVersion(version) {
-    return version.split('.').map(Number);
-  }
-
-  // 将版本数组格式化为字符串
-  formatVersion(versionArray) {
-    return versionArray.join('.');
-  }
-
-  // 更新补丁版本号 (x.x.Z)
-  incrementPatch() {
-    const [major, minor, patch] = this.parseVersion(this.currentVersion);
-    this.currentVersion = this.formatVersion([major, minor, patch + 1]);
-    return this.currentVersion;
-  }
-
-  // 更新小版本号 (x.Y.z)
-  incrementMinor() {
-    const [major, minor, patch] = this.parseVersion(this.currentVersion);
-    this.currentVersion = this.formatVersion([major, minor + 1, 0]);
-    return this.currentVersion;
-  }
-
-  // 更新主版本号 (X.y.z)
-  incrementMajor() {
-    const [major, minor, patch] = this.parseVersion(this.currentVersion);
-    this.currentVersion = this.formatVersion([major + 1, 0, 0]);
-    return this.currentVersion;
-  }
-
-  // 根据类型更新版本号
-  increment(versionType = 'patch') {
-    switch (versionType) {
-      case 'major':
-        return this.incrementMajor();
-      case 'minor':
-        return this.incrementMinor();
-      case 'patch':
-      default:
-        return this.incrementPatch();
+// 获取当前版本号，如果没有则默认为1.0.0
+function getCurrentVersion() {
+  try {
+    const packageJsonPath = path.join(__dirname, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      return packageJson.version || '1.0.0';
     }
-  }
-
-  // 保存版本号到package.json
-  save() {
-    this.packageData.version = this.currentVersion;
-    fs.writeFileSync(this.packagePath, JSON.stringify(this.packageData, null, 2), 'utf8');
-    return this.currentVersion;
-  }
-
-  // 获取当前版本号
-  getVersion() {
-    return this.currentVersion;
+    return '1.0.0';
+  } catch (error) {
+    console.error('获取版本号失败:', error);
+    return '1.0.0';
   }
 }
 
-// 创建版本管理器实例
-const versionManager = new VersionManager(pkg, pkgPath);
+// 更新版本号
+function updateVersion(version) {
+  try {
+    const packageJsonPath = path.join(__dirname, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      packageJson.version = version;
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+      console.log(`版本已更新为: ${version}`);
+    }
+  } catch (error) {
+    console.error('更新版本号失败:', error);
+  }
+}
 
-// 日志函数
-function log(message, level = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const levelPrefix = level.toUpperCase().padStart(5);
-  console.log(`[${timestamp}] [${levelPrefix}] ${message}`);
+// 解析版本号并递增
+function incrementVersion(version) {
+  const parts = version.split('.');
+  if (parts.length === 3) {
+    parts[2] = String(parseInt(parts[2]) + 1);
+    return parts.join('.');
+  }
+  return version;
 }
 
 // 检查文件是否存在
-function checkFileExists(filePath) {
-  try {
-    fs.accessSync(filePath, fs.constants.F_OK);
-    return true;
-  } catch (error) {
-    log(`错误：文件不存在: ${filePath}`, 'error');
+function checkFilesExist(files) {
+  const missingFiles = files.filter(file => !fs.existsSync(file));
+  if (missingFiles.length > 0) {
+    console.error('以下文件不存在:');
+    missingFiles.forEach(file => console.error(`  - ${file}`));
     return false;
   }
+  return true;
 }
 
-// 读取文件内容
-function readFile(filePath) {
-  try {
-    return fs.readFileSync(filePath, 'utf8');
-  } catch (error) {
-    log(`错误：读取文件失败: ${filePath}`, 'error');
-    process.exit(1);
-  }
+// 清理CSS代码，移除注释和多余的空格
+function cleanCSS(css) {
+  // 移除CSS注释
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // 移除多余的空格
+  css = css.replace(/\s+/g, ' ');
+  // 移除行首和行尾的空格
+  css = css.replace(/^\s+|\s+$/gm, '');
+  return css.trim();
 }
 
 // 生成油猴脚本头部
-function generateUserscriptHeader() {
+function generateUserscriptHeader(version) {
   return `// ==UserScript==
-// @name         抖音UI定制器
-// @namespace    https://github.com/sutchan/douyin_tool
-// @version      ${pkg.version}
-// @description  自定义抖音界面，提供暗黑模式和UI调整
-// @author       Sut
+// @name         抖音UI自定义工具
+// @namespace    http://tampermonkey.net/
+// @version      ${version}
+// @description  自定义抖音网页版的UI界面，隐藏不需要的元素，调整布局
+// @author       You
 // @match        https://www.douyin.com/*
-// @match        https://www.douyin.com
-// @match        https://www.douyin.com/search/*
-// @match        https://www.douyin.com/user/*
-// @match        https://www.douyin.com/video/*
-// @match        https://www.douyin.com/live/*
+// @match        https://v.douyin.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=douyin.com
 // @grant        GM_addStyle
-// @grant        GM_setValue
 // @grant        GM_getValue
-// @grant        GM_registerMenuCommand
-// @grant        GM_unregisterMenuCommand
-// @license      MIT
-// ==/UserScript==`;
+// @grant        GM_setValue
+// ==/UserScript==
+
+`;
 }
 
-// 构建脚本
-async function build() {
-  // 从命令行参数获取版本更新类型
-  const versionType = process.argv[2] || 'patch';
-  let shouldIncrementVersion = process.argv.includes('--increment') || 
-                             (process.argv[2] && ['major', 'minor', 'patch'].includes(process.argv[2]));
-
-  // 如果指定了版本更新类型，自动递增版本号
-  if (shouldIncrementVersion) {
-    const newVersion = versionManager.increment(versionType);
-    versionManager.save();
-    log(`版本号已更新：${pkg.version} -> ${newVersion}`, 'info');
-    // 重新读取更新后的package.json
-    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-  }
-  const startTime = Date.now();
-  log('开始构建...');
+// 主函数
+function main() {
+  const srcDir = path.join(__dirname, 'src');
+  const distDir = path.join(__dirname, 'dist');
+  const outputFile = path.join(distDir, 'douyin_ui_customizer.user.js');
   
-  try {
-    // 检查必要的文件是否存在
-    log('正在检查必要文件...', 'verbose');
-    const requiredFiles = [
-      path.join(__dirname, 'src', 'main.js'),
-      path.join(__dirname, 'src', 'config.js'),
-      path.join(__dirname, 'src', 'ui_manager.js'),
-      path.join(__dirname, 'src', 'utils', 'dom.js'),
-      path.join(__dirname, 'src', 'utils', 'storage.js'),
-      path.join(__dirname, 'src', 'styles', 'default.css'),
-      path.join(__dirname, 'src', 'styles', 'dark.css')
-    ];
-    
-    for (const file of requiredFiles) {
-      if (!checkFileExists(file)) {
-        process.exit(1);
-      }
-    }
-    
-    // 读取所有JS文件
-    log('正在读取文件...');
-    const mainJS = readFile(path.join(__dirname, 'src', 'main.js'));
-    const configJS = readFile(path.join(__dirname, 'src', 'config.js'));
-    const uiManagerJS = readFile(path.join(__dirname, 'src', 'ui_manager.js'));
-    const domUtilsJS = readFile(path.join(__dirname, 'src', 'utils', 'dom.js'));
-    const storageUtilsJS = readFile(path.join(__dirname, 'src', 'utils', 'storage.js'));
-    
-    // 读取CSS文件
-    const defaultCSS = readFile(path.join(__dirname, 'src', 'styles', 'default.css'));
-    const darkCSS = readFile(path.join(__dirname, 'src', 'styles', 'dark.css'));
-    
-    log('文件读取完成，开始合并...');
-    
-    // 合并代码
-    let combinedJS = "";
-    
-    // 1. CSS样式定义
-    log('合并CSS样式定义...', 'verbose');
-    combinedJS += "// CSS样式定义\n";
-    // 使用更安全的方式处理CSS内容
-    const cleanCSS = (css) => {
-      return css
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/\n/g, '\\n');
-    };
-    
-    combinedJS += "const defaultStyles = '" + cleanCSS(defaultCSS) + "';\n";
-    combinedJS += "const darkStyles = '" + cleanCSS(darkCSS) + "';\n\n";
-    
-    // 2. 工具函数模块
-    log('合并工具函数模块...', 'verbose');
-    combinedJS += "// 工具函数模块\n" + domUtilsJS + "\n\n";
-    
-    // 3. 存储工具模块
-    log('合并存储工具模块...', 'verbose');
-    combinedJS += "// 存储工具模块\n" + storageUtilsJS + "\n\n";
-    
-    // 4. 配置管理模块
-    log('合并配置管理模块...', 'verbose');
-    combinedJS += "// 配置管理模块\n" + configJS + "\n\n";
-    
-    // 5. UI管理器模块
-    log('合并UI管理器模块...', 'verbose');
-    combinedJS += "// UI管理器模块\n" + uiManagerJS + "\n\n";
-    
-    // 6. 主脚本逻辑
-    log('合并主脚本逻辑...', 'verbose');
-    combinedJS += "// 主脚本逻辑\n";
-    // 提取main.js中油猴脚本元数据之后的内容
-    let mainJSContent = mainJS;
-    const metaEndIndex = mainJS.indexOf('// ==/UserScript==');
-    if (metaEndIndex !== -1) {
-      mainJSContent = mainJS.substring(metaEndIndex + 17);
-    }
-    // 更新版本号
-    const updatedMainJS = mainJSContent.replace(/const CURRENT_VERSION = '[^']+'/, `const CURRENT_VERSION = '${pkg.version}'`);
-    combinedJS += updatedMainJS;
-    
-    log('代码合并完成！');
-    
-    // 生成最终脚本
-    const header = generateUserscriptHeader();
-    let finalScript = header + "\n\n" + combinedJS;
-    
-    // 添加构建时间信息
-    const buildTime = new Date().toISOString();
-    finalScript = finalScript.replace(/const CURRENT_VERSION = '[^']+'/, 
-      `const CURRENT_VERSION = '${pkg.version}';\nconst BUILD_TIME = '${buildTime}';`);
-    
-    // 添加构建元数据注释
-     finalScript = finalScript + `\n\n/*\n * 构建信息\n * 版本: ${pkg.version}\n * 构建时间: ${buildTime}\n * 构建类型: ${shouldIncrementVersion ? versionType : 'none'}\n */`;
-    
-    // 简单的语法修复
-    finalScript = finalScript.replace(/\{\s*,/g, '{');
-    finalScript = finalScript.replace(/const DEFAULT_CONFIG = \{,/g, 'const DEFAULT_CONFIG = {');
-    finalScript = finalScript.replace(/\}\s*function loadConfig/g, '};\nfunction loadConfig');
-    // 修复孤立的等号
-    finalScript = finalScript.replace(/^\s*=\s*$/gm, '');
-    // 确保模块导出语句后的代码正确
-    finalScript = finalScript.replace(/export default UIManager;\s*=\s*/g, 'export default UIManager;\n')
-    
-    // 写入文件
-    const outputPath = path.join(__dirname, 'dist', 'douyin_ui_customizer.user.js');
-    try {
-      fs.writeFileSync(outputPath, finalScript, 'utf8');
-      log(`文件写入成功：${outputPath}`);
-      
-      // 验证输出文件大小
-      const stats = fs.statSync(outputPath);
-      log(`输出文件大小：${(stats.size / 1024).toFixed(2)} KB`, 'verbose');
-      
-      // 语法检查
-      log('正在验证生成文件的语法...');
-      try {
-        // 使用更安全的方式进行语法检查
-        const { execSync } = require('child_process');
-        execSync(`node -c "${outputPath}"`, { stdio: 'ignore' });
-        log('语法检查通过！文件没有语法错误。');
-      } catch (error) {
-        log('警告：生成的文件存在语法错误！', 'warn');
-        log('请使用 `node -c dist/douyin_ui_customizer.user.js` 检查具体错误', 'warn');
-      }
-      
-    } catch (error) {
-      log(`错误：写入文件失败: ${error.message}`, 'error');
-      process.exit(1);
-    }
-    
-    const endTime = Date.now();
-    log(`构建完成！耗时：${((endTime - startTime) / 1000).toFixed(3)} 秒`);
-    log(`构建详情：版本 ${pkg.version}, 生产模式: false`);
-    
-  } catch (error) {
-    log(`构建过程中发生错误: ${error.message}`, 'error');
+  // 检查源文件是否存在
+  const sourceFiles = [
+    path.join(srcDir, 'index.js'),
+    path.join(srcDir, 'ui_manager.js'),
+    path.join(srcDir, 'utils', 'index.js'),
+    path.join(srcDir, 'styles', 'default.css')
+  ];
+  
+  if (!checkFilesExist(sourceFiles)) {
     process.exit(1);
   }
+  
+  // 创建dist目录（如果不存在）
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true });
+  }
+  
+  // 获取并更新版本号
+  const currentVersion = getCurrentVersion();
+  const newVersion = incrementVersion(currentVersion);
+  updateVersion(newVersion);
+  
+  // 读取源文件
+  console.log('开始合并文件...');
+  const indexCode = fs.readFileSync(sourceFiles[0], 'utf8');
+  const uiManagerCode = fs.readFileSync(sourceFiles[1], 'utf8');
+  const utilsCode = fs.readFileSync(sourceFiles[2], 'utf8');
+  const defaultCssCode = cleanCSS(fs.readFileSync(sourceFiles[3], 'utf8'));
+  const darkCssCode = cleanCSS(fs.readFileSync(path.join(srcDir, 'styles', 'dark.css'), 'utf8'));
+  const cssCode = defaultCssCode + '\n' + darkCssCode;
+  
+  // 生成CSS注入代码
+  const cssInjectCode = `// 注入CSS样式
+(function() {
+  const style = document.createElement('style');
+  style.textContent = \`${cssCode}\`;
+  document.head.appendChild(style);
+})();
+
+`;
+  
+  // 合并代码
+  let finalScript = generateUserscriptHeader(newVersion);
+  finalScript += cssInjectCode;
+  finalScript += utilsCode + '\n\n';
+  finalScript += uiManagerCode + '\n\n';
+  
+  // 如果index.js包含初始化代码，使用它；否则添加默认初始化
+  if (!indexCode.includes('new UIManager()')) {
+    finalScript += '// 初始化UIManager\nconst uiManager = new UIManager();\nuiManager.init();';
+  } else {
+    // 提取index.js中的实际执行代码（排除导入语句）
+    const indexExecutionCode = indexCode
+      .split('\n')
+      .filter(line => !line.startsWith('import ') && !line.startsWith('export '))
+      .join('\n')
+      .trim();
+    if (indexExecutionCode) {
+      finalScript += indexExecutionCode;
+    } else {
+      finalScript += '// 初始化UIManager\nconst uiManager = new UIManager();\nuiManager.init();';
+    }
+  }
+  
+  // 简单的语法修复
+  finalScript = finalScript.replace(/\{\s*,/g, '{');
+  finalScript = finalScript.replace(/const DEFAULT_CONFIG = \{,/g, 'const DEFAULT_CONFIG = {');
+  finalScript = finalScript.replace(/}\s*function loadConfig/g, '};\nfunction loadConfig');
+  // 修复孤立的等号
+  finalScript = finalScript.replace(/^\s*=\s*$/gm, '');
+  // 确保模块导出语句后的代码正确
+  finalScript = finalScript.replace(/export default UIManager;\s*=\s*/g, 'export default UIManager;\n');
+  
+  // 修复一些常见的语法错误
+  finalScript = finalScript.replace(/,\s*}/g, '}'); // 移除对象中多余的逗号
+  finalScript = finalScript.replace(/,\s*\]/g, ']'); // 移除数组中多余的逗号
+  finalScript = finalScript.replace(/\s*\}\s*\s*\(/g, '})('); // 修复函数调用格式
+  
+  // 确保所有函数定义和方法末尾都有分号
+  finalScript = finalScript.replace(/}\s*function/g, '};\nfunction');
+  finalScript = finalScript.replace(/}\s*}\s*class/g, '};\n};\nclass');
+  finalScript = finalScript.replace(/}\s*}\s*export/g, '};\n};\nexport');
+  
+  // 修复导入导出设置相关的函数调用
+  if (finalScript.includes('createImportExportSettings()')) {
+    // 添加缺失的函数定义
+    const importExportCode = `function createImportExportSettings() {\n  return '\
+    <div class="setting-group">\n      <h3>导入/导出设置</h3>\n      <div class="setting-item">\n        <button id="export-config" class="ui-button">导出配置</button>\n        <button id="import-config" class="ui-button">导入配置</button>\n        <input type="file" id="config-file" style="display: none;" accept=".json">\n      </div>\n    </div>\
+  ';\n}\n\nfunction initImportExport() {\n  document.getElementById('export-config').addEventListener('click', exportConfig);\n  document.getElementById('import-config').addEventListener('click', () => {\n    document.getElementById('config-file').click();\n  });\n  document.getElementById('config-file').addEventListener('change', importConfig);\n}\n\nfunction exportConfig() {\n  const config = JSON.stringify(DEFAULT_CONFIG, null, 2);\n  const blob = new Blob([config], { type: 'application/json' });\n  const url = URL.createObjectURL(blob);\n  const a = document.createElement('a');\n  a.href = url;\n  a.download = 'douyin_ui_config.json';\n  document.body.appendChild(a);\n  a.click();\n  document.body.removeChild(a);\n  URL.revokeObjectURL(url);\n}\n\nfunction importConfig(event) {\n  const file = event.target.files[0];\n  if (!file) return;\n  \n  const reader = new FileReader();\n  reader.onload = function(e) {\n    try {\n      const config = JSON.parse(e.target.result);\n      Object.assign(DEFAULT_CONFIG, config);\n      saveConfig();\n      uiManager.applySettings();\n      alert('配置导入成功！');\n    } catch (error) {\n      alert('配置文件格式错误！');\n      console.error('导入配置失败:', error);\n    }\n  };\n  reader.readAsText(file);\n}\n\nfunction saveConfig() {\n  try {\n    localStorage.setItem('douyin_ui_config', JSON.stringify(DEFAULT_CONFIG));\n  } catch (error) {\n    console.error('保存配置失败:', error);\n  }\n}`;
+    
+    // 在适当位置插入函数定义
+    finalScript = finalScript.replace(/\/\/ 初始化UIManager/, importExportCode + '\n\n// 初始化UIManager');
+  }
+  
+  // 写入输出文件
+  fs.writeFileSync(outputFile, finalScript, 'utf8');
+  console.log(`构建完成！生成的文件: ${outputFile}`);
+  console.log(`版本: ${newVersion}`);
 }
 
-// 执行构建
-build();
+// 执行主函数
+main();

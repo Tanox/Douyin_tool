@@ -1,7 +1,26 @@
 /**
  * UI管理器模块
- * 负责处理界面定制和设置面板
+ * 负责处理界面定制、设置面板和用户界面交互
  */
+
+import {
+  debounce,
+  throttle,
+  getElement,
+  getElements,
+  findElementsByClassPattern,
+  findElementsByStructure,
+  toggleElements,
+  addClass,
+  removeClass,
+  addEvent,
+  removeEvent,
+  createElement,
+  injectStyle
+} from './utils/dom.js';
+import { logger } from './utils/logger.js';
+import { eventEmitter } from './utils/eventEmitter.js';
+import themeManager from './styles/theme.js';
 
 class UIManager {
   /**
@@ -11,32 +30,49 @@ class UIManager {
   constructor(config) {
     this.config = config;
     this.settingsPanel = null;
-  }
+    this.toggleButton = null;
+    this.isPanelVisible = false;
+    this.lastScrollPosition = 0;
+    
+    // 初始化防抖和节流函数
+    this.debouncedApplyCustomizations = debounce(() => this.applyAllCustomizations(), 500);
+    this.throttledHandleScroll = throttle((e) => this.handleScroll(e), 100);
+    this.mutationObserver = null;
+    
+    // 初始化日志记录
+    logger.info('UIManager initialized with config');
+    
+    // 监听主题变化事件
+    eventEmitter.on('theme.changed', (newTheme) => {
+      logger.info(`Theme changed to ${newTheme}`);
+      this.applyTheme(newTheme);
+    });
+  };
 
   /**
    * 应用短视频界面定制
    */
   applyVideoCustomizations() {
-    console.log('[UI定制] 开始应用短视频界面定制');
+    logger.info('[UI定制] 开始应用短视频界面定制');
     
     if (!this.config.videoUI) {
-      console.log('[UI定制] 警告：videoUI配置缺失');
+      logger.warn('[UI定制] 警告：videoUI配置缺失');
       return;
     }
     
     const { videoUI } = this.config;
-    console.log('[UI定制] 视频UI配置:', JSON.stringify(videoUI));
+    logger.info('[UI定制] 视频UI配置:', JSON.stringify(videoUI));
     
     // 确保DOM已准备好
     if (!document.body) {
-      console.log('[UI定制] 警告：document.body未准备好，延迟应用定制');
+      logger.warn('[UI定制] 警告：document.body未准备好，延迟应用定制');
       setTimeout(() => this.applyVideoCustomizations(), 500);
       return;
     }
     
     // 隐藏/显示点赞按钮（使用多种策略）
     this.toggleElement(() => {
-      console.log('[UI定制] 查找点赞按钮元素...');
+      logger.info('[UI定制] 查找点赞按钮元素...');
       // 1. 首先尝试通过可能的点赞图标查找
       const heartIcons = this.findElementsByStructure({
         tagName: 'svg',
@@ -44,22 +80,23 @@ class UIManager {
       });
       
       if (heartIcons.length > 0) {
-        console.log(`[UI定制] 找到 ${heartIcons.length} 个可能的点赞图标`);
+        logger.info(`[UI定制] 找到 ${heartIcons.length} 个可能的点赞图标`);
         // 找到包含点赞图标的元素，返回其父元素
         const elements = heartIcons.map(icon => icon.closest('div') || icon);
-        console.log(`[UI定制] 获取到 ${elements.length} 个点赞相关元素`);
+        logger.info(`[UI定制] 获取到 ${elements.length} 个点赞相关元素`);
         return elements;
       }
       
       // 2. 通过类名模式匹配
-      console.log('[UI定制] 尝试通过类名模式匹配点赞按钮');
+      logger.info('[UI定制] 尝试通过类名模式匹配点赞按钮');
       const classElements = this.findElementsByClassPattern(/like|heart|favorite/i);
-      console.log(`[UI定制] 通过类名找到 ${classElements.length} 个可能的点赞元素`);
+      logger.info(`[UI定制] 通过类名找到 ${classElements.length} 个可能的点赞元素`);
       return classElements;
     }, videoUI.showLikeButton);
     
     // 隐藏/显示评论按钮
     this.toggleElement(() => {
+      logger.info('[UI定制] 开始查找评论元素...');
       const commentElements = this.findElementsByStructure({
         tagName: 'div',
         children: [{
@@ -181,7 +218,7 @@ class UIManager {
     
     // 隐藏/显示礼物（增强礼物识别能力）
     this.toggleElement(() => {
-      console.log('[UI定制] 开始查找礼物元素...');
+      logger.info('[UI定制] 开始查找礼物元素...');
       
       // 1. 组合所有可能的礼物相关元素
       let giftElements = [];
@@ -232,7 +269,7 @@ class UIManager {
       // 去重
       giftElements = [...new Set(giftElements)];
       
-      console.log(`[UI定制] 找到 ${giftElements.length} 个礼物相关元素`);
+      logger.info(`[UI定制] 找到 ${giftElements.length} 个礼物相关元素`);
       return giftElements;
     }, liveUI.showGifts);
     
@@ -316,210 +353,57 @@ class UIManager {
    * @param {string|Function} selectorOrFinder - CSS选择器或元素查找函数
    * @param {boolean} show - 是否显示
    */
+  /**
+   * 切换元素显示状态
+   * @param {Function|string} selectorOrFinder - 元素选择器或查找函数
+   * @param {boolean} show - 是否显示元素
+   */
   toggleElement(selectorOrFinder, show) {
     let elements = [];
     
-    // 检查参数类型
+    // 支持函数查找器或选择器字符串
     if (typeof selectorOrFinder === 'function') {
       try {
-        // 如果是函数，则调用它来查找元素
-        elements = selectorOrFinder();
+        elements = selectorOrFinder() || [];
       } catch (e) {
-        console.error('查找元素函数执行失败:', e);
+        logger.error('查找元素函数执行失败:', e);
         return;
       }
     } else if (typeof selectorOrFinder === 'string' && selectorOrFinder.trim() !== '') {
-      // 如果是选择器字符串且不为空，则使用querySelectorAll
       try {
-        elements = document.querySelectorAll(selectorOrFinder);
+        elements = getElements(selectorOrFinder);
       } catch (e) {
-        console.error('无效的CSS选择器:', selectorOrFinder, e);
+        logger.error('无效的CSS选择器:', selectorOrFinder, e);
         return;
       }
     } else {
-      console.error('无效的选择器或查找函数参数');
+      logger.error('无效的选择器或查找函数参数');
       return;
     }
     
-    // 确保elements是数组
-    if (!Array.isArray(elements)) {
-      elements = Array.from(elements);
-    }
+    // 使用增强的toggleElements函数
+    const result = toggleElements(elements, show);
     
-    // 处理元素显示/隐藏
-    elements.forEach(function(element) {
-      if (element && element.style) {
-        try {
-          // 检查元素是否可能是视频内容元素，避免隐藏关键内容
-          const isVideoContent = element.tagName === 'VIDEO' || 
-                               element.classList.contains('video-content') || 
-                               element.classList.contains('video-player') ||
-                               element.closest('.video-content') || 
-                               element.closest('.video-player');
-           
-          if (isVideoContent && !show) {
-            console.warn('尝试隐藏可能的视频内容元素，跳过此操作');
-            return; // 跳过对视频内容元素的隐藏操作
-          }
-           
-          if (show) {
-            // 显示元素，移除所有隐藏样式
-            element.style.display = '';
-            element.style.visibility = 'visible';
-            element.style.opacity = '1';
-            element.style.width = '';
-            element.style.height = '';
-            element.style.pointerEvents = '';
-            element.style.zIndex = '';
-            // 同时设置CSS类，用于确保样式优先
-            element.classList.remove('douyin-ui-hidden');
-          } else {
-            // 隐藏元素，使用更强大的样式隐藏方式
-            element.style.display = 'none !important';
-            element.style.visibility = 'hidden !important';
-            element.style.opacity = '0 !important';
-            element.style.width = '0 !important';
-            element.style.height = '0 !important';
-            element.style.pointerEvents = 'none !important';
-            element.style.zIndex = '-1 !important';
-            // 添加CSS类作为额外保障
-            element.classList.add('douyin-ui-hidden');
-          }
-          let successCount = 0; // 初始化计数器以避免引用错误
-          successCount++;
-        } catch (error) {
-          console.error('处理元素时出错:', error);
-        }
-      }
-    });
+    return result;
   }
   
   /**
-   * 基于结构特征查找元素
-   * @param {Object} options - 查找选项
-   * @returns {HTMLElement[]} 找到的元素数组
+   * 使用增强的DOM工具函数查找符合结构特征的元素
+   * @param {Object} options - 结构查找选项
+   * @returns {HTMLElement[]} - 找到的元素数组
    */
   findElementsByStructure(options) {
-    const result = [];
-    
-    // 根据选项执行不同的查找策略
-    if (options.text) {
-      // 通过文本内容查找
-      const allElements = document.body.querySelectorAll('*');
-      allElements.forEach(el => {
-        // 如果是正则表达式，则使用test方法，否则使用includes
-        if (options.text instanceof RegExp) {
-          if (options.text.test(el.textContent)) {
-            result.push(el);
-          }
-        } else {
-          if (el.textContent.includes(options.text)) {
-            result.push(el);
-          }
-        }
-      });
-    }
-    
-    if (options.tagName) {
-      // 通过标签名初步筛选
-      const elements = document.body.querySelectorAll(options.tagName);
-      
-      // 如果提供了属性，则进一步筛选
-      if (options.attributes) {
-        elements.forEach(el => {
-          let match = true;
-          for (const [attr, value] of Object.entries(options.attributes)) {
-            if (!el.hasAttribute(attr) || 
-                (value && el.getAttribute(attr) !== value)) {
-              match = false;
-              break;
-            }
-          }
-          if (match) result.push(el);
-        });
-      } else {
-        // 没有属性筛选，直接添加
-        result.push(...Array.from(elements));
-      }
-    }
-    
-    // 如果提供了子元素结构条件
-    if (options.children) {
-      const candidates = result.length > 0 ? result : document.body.querySelectorAll('*');
-      const filtered = [];
-      
-      candidates.forEach(parent => {
-        let match = true;
-        for (const childCriteria of options.children) {
-          const selector = childCriteria.tagName;
-          let found = false;
-          
-          // 优化查找逻辑，使用for循环替代forEach以便找到匹配后立即跳出
-          const children = parent.querySelectorAll(selector);
-          for (let i = 0; i < children.length && !found; i++) {
-            const child = children[i];
-            // 检查子元素的条件
-            let childMatch = true;
-            if (childCriteria.text) {
-              if (childCriteria.text instanceof RegExp) {
-                if (!childCriteria.text.test(child.textContent)) {
-                  childMatch = false;
-                }
-              } else {
-                if (!child.textContent.includes(childCriteria.text)) {
-                  childMatch = false;
-                }
-              }
-            }
-            
-            if (childCriteria.attributes) {
-              for (const [attr, value] of Object.entries(childCriteria.attributes)) {
-                if (!child.hasAttribute(attr) || 
-                    (value && child.getAttribute(attr) !== value)) {
-                  childMatch = false;
-                  break;
-                }
-              }
-            }
-            
-            if (childMatch) {
-              found = true;
-              break;
-            }
-          }
-          
-          if (!found) {
-            match = false;
-            break;
-          }
-        }
-        
-        if (match) filtered.push(parent);
-      });
-      
-      return filtered;
-    }
-    
-    return result;
+    return findElementsByStructure(options);
   }
-  
+
   /**
-   * 查找符合模式的类名
-   * @param {RegExp} pattern - 类名匹配模式
-   * @param {string} tagName - 可选的标签名限制
-   * @returns {HTMLElement[]} 匹配的元素数组
+   * 使用增强的DOM工具函数查找符合类名模式的元素
+   * @param {RegExp} pattern - 类名正则表达式
+   * @param {string} tagName - 标签名筛选
+   * @returns {HTMLElement[]} - 找到的元素数组
    */
   findElementsByClassPattern(pattern, tagName = '*') {
-    const elements = document.querySelectorAll(tagName);
-    const result = [];
-    
-    elements.forEach(el => {
-      if (el.className && pattern.test(el.className)) {
-        result.push(el);
-      }
-    });
-    
-    return result;
+    return findElementsByClassPattern(pattern, tagName);
   }
 
   /**
@@ -608,6 +492,26 @@ class UIManager {
   }
 
   /**
+   * 隐藏设置面板
+   */
+  hideSettingsPanel() {
+    if (!this.settingsPanel) return;
+    
+    this.isPanelVisible = false;
+    
+    // 添加淡出动画
+    this.settingsPanel.style.transition = 'opacity 0.3s ease-out';
+    this.settingsPanel.style.opacity = '0';
+    
+    // 动画结束后隐藏面板
+    setTimeout(() => {
+      if (this.settingsPanel) {
+        this.settingsPanel.style.display = 'none';
+      }
+    }, 300);
+  }
+
+  /**
    * 应用自定义布局
    * @param {string} type - 类型（video或live）
    * @param {string} layout - 布局名称
@@ -638,12 +542,104 @@ class UIManager {
   }
 
   /**
+   * 统一应用所有UI定制
+   */
+  applyAllCustomizations() {
+    console.log('[UI定制] 开始统一应用所有UI定制');
+    
+    try {
+      // 检测页面类型并应用相应的定制
+      const pageType = this.detectPageType();
+      console.log(`[UI定制] 检测到页面类型: ${pageType}`);
+      
+      switch (pageType) {
+        case 'video':
+          this.applyVideoCustomizations();
+          break;
+        case 'live':
+          this.applyLiveCustomizations();
+          break;
+        default:
+          console.log('[UI定制] 未识别的页面类型，尝试应用通用定制');
+          this.applyVideoCustomizations(); // 默认尝试应用视频定制
+      }
+      
+      // 应用主题
+      if (this.config.theme) {
+        this.applyTheme(this.config.theme);
+      }
+    } catch (error) {
+      console.error('[UI定制] 应用定制时出错:', error);
+    }
+  }
+
+  /**
+   * 检测当前页面类型
+   * @returns {string} 页面类型 (video/live/home/other)
+   */
+  detectPageType() {
+    if (document.querySelector('video[autoplay]')) {
+      return 'video';
+    }
+    
+    if (document.querySelector('.live, .live-room, [data-type="live"]')) {
+      return 'live';
+    }
+    
+    return 'other';
+  }
+
+  /**
+   * 处理页面滚动事件
+   * @param {Event} e - 滚动事件对象
+   */
+  handleScroll(e) {
+    const currentScroll = window.scrollY;
+    
+    // 检测滚动方向
+    const direction = currentScroll > this.lastScrollPosition ? 'down' : 'up';
+    this.lastScrollPosition = currentScroll;
+    
+    // 可以在这里实现基于滚动的UI交互，例如隐藏/显示设置面板
+    if (this.settingsPanel && this.isPanelVisible) {
+      // 向下滚动超过一定距离时自动隐藏面板
+      if (direction === 'down' && currentScroll > 100) {
+        this.hideSettingsPanel();
+      }
+    }
+  }
+
+  /**
    * 创建设置面板
    * @returns {HTMLElement} 设置面板元素
    */
   createSettingsPanel() {
-    const panel = document.createElement('div');
-    panel.className = 'douyin-ui-customizer-panel';
+    // 使用增强的createElement函数创建主容器
+    const panel = createElement('div', {
+      className: 'douyin-ui-customizer-panel',
+      style: {
+        animation: 'slideIn 0.3s ease-out'
+      }
+    });
+    
+    // 注入专用样式
+    injectStyle(`
+      .douyin-ui-customizer-panel {
+        animation: slideIn 0.3s ease-out;
+      }
+      
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+    `);
+    
     panel.innerHTML = `
       <div class="panel-header">
         <h2>抖音UI定制设置</h2>
@@ -761,6 +757,9 @@ class UIManager {
     
     // 移除transform属性，改用left和top定位
     panel.style.transform = 'none';
+    
+    // 初始化面板可见状态
+    this.isPanelVisible = true;
     
     let isDragging = false;
     let offsetX, offsetY;
@@ -1041,6 +1040,96 @@ class UIManager {
       </div>
     `;
   }
+  
+  /**
+   * 创建导入导出设置内容
+   * @returns {string} HTML字符串
+   */
+  createImportExportSettings() {
+    return `
+      <div class="setting-group">
+        <h3>配置导入</h3>
+        <textarea id="importConfig" placeholder="粘贴配置JSON字符串" rows="5" cols="40"></textarea>
+        <button id="importBtn" class="action-btn">导入配置</button>
+      </div>
+      
+      <div class="setting-group">
+        <h3>配置导出</h3>
+        <button id="exportBtn" class="action-btn">导出当前配置</button>
+        <textarea id="exportConfig" placeholder="配置将在这里显示" rows="5" cols="40"></textarea>
+        <button id="copyBtn" class="action-btn">复制到剪贴板</button>
+      </div>
+    `;
+  }
+  
+  /**
+   * 初始化导入导出功能
+   * @param {HTMLElement} panel - 设置面板元素
+   */
+  initImportExport(panel) {
+    if (!panel) return;
+    
+    // 导出配置
+    const exportBtn = panel.querySelector('#exportBtn');
+    const exportConfig = panel.querySelector('#exportConfig');
+    const copyBtn = panel.querySelector('#copyBtn');
+    
+    if (exportBtn && exportConfig) {
+      exportBtn.addEventListener('click', () => {
+        try {
+          exportConfig.value = JSON.stringify(this.config, null, 2);
+        } catch (error) {
+          logger.error('导出配置失败:', error);
+          alert('导出配置失败');
+        }
+      });
+    }
+    
+    // 复制到剪贴板
+    if (copyBtn && exportConfig) {
+      copyBtn.addEventListener('click', () => {
+        exportConfig.select();
+        try {
+          document.execCommand('copy');
+          alert('配置已复制到剪贴板');
+        } catch (error) {
+          logger.error('复制失败:', error);
+          alert('复制失败');
+        }
+      });
+    }
+    
+    // 导入配置
+    const importBtn = panel.querySelector('#importBtn');
+    const importConfig = panel.querySelector('#importConfig');
+    
+    if (importBtn && importConfig) {
+      importBtn.addEventListener('click', () => {
+        try {
+          const newConfig = JSON.parse(importConfig.value);
+          this.config = newConfig;
+          this.saveConfig();
+          alert('配置导入成功');
+          location.reload();
+        } catch (error) {
+          logger.error('导入配置失败:', error);
+          alert('导入配置失败，请检查JSON格式');
+        }
+      });
+    }
+  };
+
+  /**
+   * 保存配置
+   */
+  saveConfig() {
+    try {
+      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(this.config));
+      logger.info('配置已保存');
+    } catch (error) {
+      logger.error('保存配置失败:', error);
+    }
+  };
 
   /**
    * 应用配置到设置面板
@@ -1049,7 +1138,9 @@ class UIManager {
     if (!this.settingsPanel) return;
 
     // 应用主题
-    this.applyTheme(this.config.theme);
+    this.applyTheme(this.config.theme || 'light');
+    
+    logger.info('Settings applied to panel');
 
     // 添加事件监听
     this.settingsPanel.querySelectorAll('input[type="radio"][name="theme"]').forEach(radio => {
@@ -1130,15 +1221,35 @@ class UIManager {
 
   /**
    * 应用主题到页面
-   * @param {string} theme - 主题名称 ('light' 或 'dark')
+   * @param {string} theme - 主题名称
    */
   applyTheme(theme) {
-    if (theme === 'dark') {
-      document.body.classList.add('dark-theme');
-      this.settingsPanel?.classList.add('dark-theme');
-    } else {
-      document.body.classList.remove('dark-theme');
-      this.settingsPanel?.classList.remove('dark-theme');
+    try {
+      // 使用ThemeManager应用主题
+      themeManager.applyTheme(theme);
+      
+      // 为设置面板应用主题特定样式
+      if (this.settingsPanel) {
+        const themeConfig = themeManager.getTheme(theme);
+        if (themeConfig) {
+          this.settingsPanel.style.backgroundColor = themeConfig.background || '#fff';
+          this.settingsPanel.style.color = themeConfig.text || '#000';
+          this.settingsPanel.style.borderColor = themeConfig.border || '#e0e0e0';
+          
+          // 应用到面板内元素
+          const buttons = this.settingsPanel.querySelectorAll('button');
+          buttons.forEach(btn => {
+            btn.style.backgroundColor = themeConfig.buttonBackground || '#f5f5f5';
+            btn.style.color = themeConfig.buttonText || '#333';
+          });
+        }
+      }
+      
+      logger.info(`Theme ${theme} applied successfully`);
+      eventEmitter.emit('ui.theme.applied', theme);
+    } catch (error) {
+      logger.error('Failed to apply theme:', error);
+      eventEmitter.emit('ui.theme.error', error);
     }
   }
 
@@ -1146,7 +1257,14 @@ class UIManager {
    * 保存配置到本地存储
    */
   saveConfig() {
-    saveConfig(this.config);
+    try {
+      saveConfig(this.config);
+      logger.info('Config saved successfully');
+      eventEmitter.emit('ui.config.saved', this.config);
+    } catch (error) {
+      logger.error('Failed to save config:', error);
+      eventEmitter.emit('ui.config.error', error);
+    }
   }
 
   /**
@@ -1278,6 +1396,10 @@ class UIManager {
     
     // 初始化主题
     this.applyTheme(this.config.theme);
+    
+    // 触发面板初始化完成事件
+    eventEmitter.emit('ui.panel.initialized');
+    logger.info('Settings panel initialized');
   }
 
   /**
@@ -1323,26 +1445,99 @@ class UIManager {
    * 初始化UI管理器
    */
   init() {
-    // 等待页面加载完成
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.initUI());
-    } else {
+    console.log('[UI管理器] 初始化UI管理器');
+    
+    try {
+      // 初始化设置面板
+      this.initSettingsPanel();
+      
+      // 初始化UI定制
       this.initUI();
+      
+      // 注册事件监听
+      this.setupEvents();
+    } catch (error) {
+      console.error('[UI管理器] 初始化失败:', error);
     }
   }
 
   /**
-   * 初始化UI
+   * 初始化UI定制
    */
   initUI() {
-    this.initSettingsPanel();
+    console.log('[UI管理器] 初始化UI定制');
+    
+    // 显示切换按钮
     this.showToggleButton();
     
-    // 定期检查页面元素并应用定制
-    setInterval(() => {
-      this.applyVideoCustomizations();
-      this.applyLiveCustomizations();
-    }, 1000);
+    // 使用统一的定制应用方法
+    this.applyAllCustomizations();
+  }
+
+  /**
+   * 设置事件监听
+   */
+  setupEvents() {
+    console.log('[UI管理器] 设置事件监听');
+    
+    // 页面加载完成后应用定制
+    addEvent(window, 'load', this.debouncedApplyCustomizations);
+    
+    // DOM内容变化时重新应用定制（用于SPA应用）
+    addEvent(document, 'DOMContentLoaded', this.debouncedApplyCustomizations);
+    
+    // 使用MutationObserver监听DOM变化
+    this.observeDomChanges();
+    
+    // 监听滚动事件
+    addEvent(window, 'scroll', this.throttledHandleScroll);
+    
+    // 监听窗口大小变化
+    addEvent(window, 'resize', this.debouncedApplyCustomizations);
+    
+    // 监听主题变化
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').addEventListener) {
+      addEvent(window.matchMedia('(prefers-color-scheme: dark)'), 'change', this.debouncedApplyCustomizations);
+    }
+  }
+
+  /**
+   * 观察DOM变化
+   */
+  observeDomChanges() {
+    const observer = new MutationObserver(this.debouncedApplyCustomizations);
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true
+    });
+    
+    // 保存观察者实例以便后续清理
+    this.domObserver = observer;
+  }
+
+  /**
+   * 清理资源和事件监听
+   */
+  cleanup() {
+    console.log('[UI管理器] 清理资源和事件监听');
+    
+    // 断开DOM观察者
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+    }
+    
+    // 移除事件监听
+    removeEvent(window, 'load', this.debouncedApplyCustomizations);
+    removeEvent(document, 'DOMContentLoaded', this.debouncedApplyCustomizations);
+    removeEvent(window, 'scroll', this.throttledHandleScroll);
+    removeEvent(window, 'resize', this.debouncedApplyCustomizations);
+    
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').removeEventListener) {
+      removeEvent(window.matchMedia('(prefers-color-scheme: dark)'), 'change', this.debouncedApplyCustomizations);
+    }
   }
 }
 

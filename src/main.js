@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音网页版UI定制工具
 // @namespace    http://tampermonkey.net/
-// @version 1.0.83
+// @version 1.0.125
 // @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
 // @author       SutChan
 // @match        *://*.douyin.com/*
@@ -16,16 +16,29 @@
 /**
  * 抖音Web端界面UI定制工具主入口
  * 作者：SutChan
- * 版本：1.0.83
+ * 版本：1.0.125
  */
 
-// 导入工具函数
-const { getItem, setItem } = require('./utils/storage.js');
+// 导入工具模块
+import { debounce, getElement, addEvent, createElement, injectStyle } from './utils/dom.js';
+import { getItem, setItem, NamespacedStorage } from './utils/storage.js';
+import logger from './utils/logger.js';
+import eventEmitter from './utils/eventEmitter.js';
+import performanceMonitor from './utils/performance.js';
+import configManager from './config.js';
+import UIManager from './ui_manager.js';
+import themeManager from './styles/theme.js';
 
 // 当前脚本版本
 const CURRENT_VERSION = '1.0.125';
 // 更新检查间隔（毫秒）
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24小时
+
+// 创建命名空间存储
+const storage = new NamespacedStorage('douyin_tool');
+
+// UI管理器实例
+let uiManager = null;
 
 /**
  * 检查脚本更新
@@ -66,7 +79,7 @@ async function checkForUpdates(showNoUpdateMessage = false) {
       }
     });
   } catch (error) {
-    console.error('检查更新时发生错误：', error);
+    logger.error('检查更新时发生错误：', error);
   }
 }
 
@@ -106,13 +119,20 @@ function shouldCheckForUpdates() {
 
 // 初始化函数
 function init() {
-  console.log('抖音UI定制工具已启动');
+  logger.info('抖音UI定制工具已启动');
+  
+  // 开始性能监控
+  performanceMonitor.start();
   
   // 加载配置
-  const config = loadConfig();
+  configManager.loadConfig();
+  const config = configManager.getConfig();
   
   // 初始化UI管理器
-  const uiManager = new UIManager(config);
+  uiManager = new UIManager(config);
+  
+  // 初始化主题管理器
+  themeManager.init(config.theme);
   
   // 注入样式
   injectStyles(config.theme);
@@ -127,37 +147,56 @@ function init() {
   if (shouldCheckForUpdates()) {
     checkForUpdates(false);
   }
+  
+  // 设置错误处理
+  setupErrorHandling();
+  
+  // 触发初始化完成事件
+  eventEmitter.emit('tool.init.completed', { config });
 }
 
 /**
  * 注入样式
  * @param {string} theme - 主题名称
  */
-function injectStyles(theme) {
-  // 移除可能存在的旧样式
-  const oldStyle = document.getElementById('douyin-ui-customizer-styles');
-  if (oldStyle) {
-    oldStyle.remove();
+async function injectStyles(theme) {
+  try {
+    // 使用主题管理器应用主题
+    const success = await themeManager.applyTheme(theme);
+    if (!success) {
+      logger.warn('主题应用失败，使用备用样式注入');
+      
+      // 备用样式注入逻辑
+      const oldStyle = document.getElementById('douyin-ui-customizer-styles');
+      if (oldStyle) {
+        oldStyle.remove();
+      }
+      
+      // 注入新样式
+      const styleElement = document.createElement('style');
+      styleElement.id = 'douyin-ui-customizer-styles';
+      
+      // 根据主题选择样式
+      if (theme === 'dark') {
+        styleElement.textContent = darkStyles;
+      } else {
+        styleElement.textContent = defaultStyles;
+      }
+      
+      document.head.appendChild(styleElement);
+    }
+    
+    // 注入自定义样式
+    const customStyle = document.createElement('style');
+    customStyle.id = 'douyin-ui-customizer-custom';
+    customStyle.textContent = generateCustomStyles();
+    document.head.appendChild(customStyle);
+    
+    // 触发样式更新事件
+    eventEmitter.emit('tool.styles.updated', { theme });
+  } catch (error) {
+    logger.error('注入样式失败:', error);
   }
-  
-  // 注入新样式
-  const styleElement = document.createElement('style');
-  styleElement.id = 'douyin-ui-customizer-styles';
-  
-  // 根据主题选择样式
-  if (theme === 'dark') {
-    styleElement.textContent = darkStyles;
-  } else {
-    styleElement.textContent = defaultStyles;
-  }
-  
-  document.head.appendChild(styleElement);
-  
-  // 注入自定义样式
-  const customStyle = document.createElement('style');
-  customStyle.id = 'douyin-ui-customizer-custom';
-  customStyle.textContent = generateCustomStyles();
-  document.head.appendChild(customStyle);
 }
 
 /**
@@ -443,11 +482,19 @@ GM_registerMenuCommand('打开设置面板', () => {
 });
 
 // 切换暗黑模式
-GM_registerMenuCommand('切换暗黑模式', () => {
-  const config = loadConfig();
-  config.theme = config.theme === 'dark' ? 'light' : 'dark';
-  saveConfig(config);
-  injectStyles(config.theme);
+GM_registerMenuCommand('切换暗黑模式', async () => {
+  try {
+    const config = loadConfig();
+    const newTheme = config.theme === 'dark' ? 'light' : 'dark';
+    config.theme = newTheme;
+    saveConfig(config);
+    
+    // 使用主题管理器切换主题
+    await themeManager.applyTheme(newTheme);
+    logger.info(`主题已切换为: ${newTheme}`);
+  } catch (error) {
+    logger.error('切换主题失败:', error);
+  }
 });
 
 // 手动检查更新
@@ -462,6 +509,59 @@ GM_registerMenuCommand('重置所有设置', () => {
     location.reload();
   }
 });
+
+// 错误处理
+function setupErrorHandling() {
+  // 全局错误捕获
+  window.onerror = function(message, source, lineno, colno, error) {
+    logger.error('[抖音UI定制工具] 全局错误:', { message, source, lineno, colno, error });
+    eventEmitter.emit('tool.error', { type: 'global', error, message });
+    return true;
+  };
+  
+  // Promise错误捕获
+  window.addEventListener('unhandledrejection', function(event) {
+    logger.error('[抖音UI定制工具] 未处理的Promise错误:', event.reason);
+    eventEmitter.emit('tool.error', { type: 'promise', error: event.reason });
+  });
+  
+  // 窗口错误捕获
+  window.addEventListener('error', (event) => {
+    logger.error('[抖音UI定制工具] 捕获到错误:', event.error, event.message);
+    eventEmitter.emit('tool.error', { type: 'window', error: event.error, message: event.message });
+  });
+  
+  // 监听性能警告
+  performanceMonitor.on('performance.warning', (data) => {
+    logger.warn('性能警告:', data);
+  });
+}
+
+// 清理函数
+function cleanup() {
+  logger.info('抖音UI定制工具执行清理');
+  
+  try {
+    // 调用UI管理器的清理方法
+    if (uiManager && typeof uiManager.cleanup === 'function') {
+      uiManager.cleanup();
+    }
+    
+    // 停止性能监控
+    performanceMonitor.stop();
+    
+    // 移除事件监听
+    eventEmitter.off('tool.init.completed');
+    eventEmitter.off('tool.styles.updated');
+    eventEmitter.off('tool.error');
+    eventEmitter.off('performance.warning');
+    
+    // 触发清理完成事件
+    eventEmitter.emit('tool.cleanup.completed');
+  } catch (error) {
+    logger.error('[抖音UI定制工具] 清理失败:', error);
+  }
+}
 
 // 增强的初始化逻辑，确保脚本在各种情况下都能正确执行
 function ensureInit() {
@@ -498,3 +598,75 @@ setInterval(() => {
     ensureInit();
   }
 }, 1000);
+
+// 注册卸载事件
+window.addEventListener('unload', cleanup);
+
+// 导出公共API
+const douyinUICustomizer = {
+  version: CURRENT_VERSION,
+  getConfig: () => configManager.getConfig(),
+  setConfig: (key, value) => configManager.setConfig(key, value),
+  showDebugInfo: () => {
+    logger.debug('[抖音UI定制工具] 调试信息:', {
+      version: CURRENT_VERSION,
+      config: configManager.getConfig(),
+      page: {
+        url: window.location.href,
+        title: document.title,
+        readyState: document.readyState
+      },
+      performance: performanceMonitor.getStats()
+    });
+  },
+  // 添加公共方法
+  refresh: () => {
+    if (uiManager && typeof uiManager.applyVideoCustomizations === 'function' && typeof uiManager.applyLiveCustomizations === 'function') {
+      if (isVideoPage()) {
+        uiManager.applyVideoCustomizations();
+      }
+      if (isLivePage()) {
+        uiManager.applyLiveCustomizations();
+      }
+    }
+  },
+  cleanup: cleanup,
+  // 主题相关API
+  theme: {
+    apply: (themeName) => themeManager.applyTheme(themeName),
+    getCurrent: () => themeManager.getCurrentTheme(),
+    list: () => themeManager.listThemes()
+  },
+  // 事件系统API
+  on: (event, callback) => eventEmitter.on(event, callback),
+  off: (event, callback) => eventEmitter.off(event, callback),
+  emit: (event, data) => eventEmitter.emit(event, data),
+  // 性能监控API
+  performance: {
+    start: () => performanceMonitor.start(),
+    stop: () => performanceMonitor.stop(),
+    getStats: () => performanceMonitor.getStats(),
+    enableDebug: () => performanceMonitor.enableDebug()
+  },
+  // 配置管理API
+  config: {
+    export: () => configManager.exportConfig(),
+    import: (jsonString) => configManager.importConfig(jsonString),
+    reset: () => configManager.resetConfig(),
+    validate: (config) => configManager.validateConfig(config)
+  }
+};
+
+// 暴露到全局作用域（如果需要）
+window.douyinUICustomizer = douyinUICustomizer;
+
+logger.info('[抖音UI定制工具] 初始化完成，当前版本:', CURRENT_VERSION);
+
+// 注册关键事件监听器
+eventEmitter.on('tool.error', (data) => {
+  logger.error('工具错误事件:', data);
+});
+
+eventEmitter.on('tool.styles.updated', (data) => {
+  logger.info('样式已更新:', data);
+});

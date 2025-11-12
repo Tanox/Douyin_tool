@@ -36,3 +36,4 @@ coverage/
 .cache/
 /docs
 /docs
+vite.config.js

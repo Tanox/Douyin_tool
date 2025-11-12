@@ -1,2 +1,41 @@
-# Auto detect text files and perform LF normalization
+# 抖音UI定制器项目 - Git属性配置
+# 确保所有文本文件使用LF换行符
+
+# 强制所有文本文件使用LF换行符
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.ps1 text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.config text eol=lf
+
+# 确保脚本文件有执行权限
+*.sh text eol=lf
+*.ps1 text eol=lf
+
+# 二进制文件不进行文本转换
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tgz binary
+*.pdf binary
+
+# 自动检测其他文本文件并规范化
 * text=auto
+
+# 确保项目的所有文本文件都是UTF-8编码
+*.js encoding=utf-8
+*.css encoding=utf-8
+*.html encoding=utf-8
+*.json encoding=utf-8
+*.md encoding=utf-8
+*.txt encoding=utf-8
+*.ts encoding=utf-8
