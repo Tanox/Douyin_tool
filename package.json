@@ -1,6 +1,6 @@
 {
   "name": "douyin-ui-customizer",
-  "version": "1.0.129",
+  "version": "1.0.143",
   "description": "抖音Web端界面UI定制工具",
   "main": "src/main.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "version:patch": "node build.js patch --increment",
     "version:minor": "node build.js minor --increment",
     "version:major": "node build.js major --increment",
-    "test": "echo \"No test specified\" && exit 0"
+    "test": "jest"
   },
   "keywords": [
     "douyin",
@@ -21,5 +21,13 @@
     "userscript"
   ],
   "author": "SutChan",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "babel-jest": "^30.2.0",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0"
+  }
 }

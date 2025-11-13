@@ -1,5 +1,5 @@
 ---
-version: 1.0.125
+version: 1.0.143
 last_updated: 2024-07-10
 author: Sut
 changelog: 修复项目源代码中的导入错误、日志使用错误和缩进问题，确保代码规范一致性

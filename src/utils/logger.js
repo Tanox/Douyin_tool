@@ -12,6 +12,7 @@ class Logger {
    * @param {boolean} options.enableInfo - 是否启用信息日志
    * @param {boolean} options.enableWarn - 是否启用警告日志
    * @param {boolean} options.enableError - 是否启用错误日志
+   * @param {number} options.maxHistorySize - 最大历史记录条数
    */
   constructor(options = {}) {
     this.prefix = options.prefix || '[抖音UI定制工具]';
@@ -20,7 +21,7 @@ class Logger {
     this.enableWarn = options.enableWarn !== false;   // 默认启用
     this.enableError = options.enableError !== false; // 默认启用
     this.logHistory = [];
-    this.maxHistorySize = 100; // 最大历史记录条数
+    this.maxHistorySize = options.maxHistorySize || 100; // 最大历史记录条数
   }
 
   /**

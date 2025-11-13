@@ -72,18 +72,24 @@ class EventEmitter {
 
   /**
    * 移除事件监听器
-   * @param {string} event - 事件名称
-   * @param {Function} listener - 要移除的监听器函数
+   * @param {string} [event] - 事件名称（可选）
+   * @param {Function} [listener] - 要移除的监听器函数（可选）
    * @returns {EventEmitter} 当前实例，支持链式调用
    */
   off(event, listener) {
+    // 如果没有指定事件，移除所有事件的所有监听器
+    if (event === undefined) {
+      this.events = {};
+      return this;
+    }
+
     // 如果事件不存在，直接返回
     if (!this.events[event]) {
       return this;
     }
 
     // 如果没有指定监听器，移除该事件的所有监听器
-    if (!listener) {
+    if (listener === undefined) {
       this.events[event] = [];
       return this;
     }

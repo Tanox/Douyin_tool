@@ -21,6 +21,9 @@ export { default as eventEmitter } from './eventEmitter.js';
 export { PerformanceMonitor } from './performance.js';
 export { default as performanceMonitor } from './performance.js';
 
+// 自动执行控制器
+export { default as autoExecutor } from './autoExecutor.js';
+
 /**
  * 工具集合
  * 提供所有工具的统一访问
@@ -67,7 +70,10 @@ export const utils = {
   
   // 性能监控
   PerformanceMonitor,
-  performanceMonitor
+  performanceMonitor,
+  
+  // 自动执行控制器
+  autoExecutor
 };
 
 export default utils;

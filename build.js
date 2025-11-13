@@ -19,13 +19,47 @@ function getCurrentVersion() {
 // 更新版本号
 function updateVersion(version) {
   try {
+    // 更新package.json中的版本号
     const packageJsonPath = path.join(__dirname, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       packageJson.version = version;
       fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
-      console.log(`版本已更新为: ${version}`);
+      console.log(`package.json版本已更新为: ${version}`);
     }
+    
+    // 更新src/main.js中的版本号
+    const mainJsPath = path.join(__dirname, 'src', 'main.js');
+    if (fs.existsSync(mainJsPath)) {
+      let mainJsContent = fs.readFileSync(mainJsPath, 'utf8');
+      // 更新@version标签
+      mainJsContent = mainJsContent.replace(/@version\s+\d+\.\d+\.\d+/i, `@version ${version}`);
+      // 更新CURRENT_VERSION常量
+      mainJsContent = mainJsContent.replace(/const CURRENT_VERSION = '\d+\.\d+\.\d+';/, `const CURRENT_VERSION = '${version}';`);
+      fs.writeFileSync(mainJsPath, mainJsContent, 'utf8');
+      console.log(`src/main.js版本已更新为: ${version}`);
+    }
+    
+    // 更新src/index.js中的版本号
+    const indexJsPath = path.join(__dirname, 'src', 'index.js');
+    if (fs.existsSync(indexJsPath)) {
+      let indexJsContent = fs.readFileSync(indexJsPath, 'utf8');
+      // 更新version属性
+      indexJsContent = indexJsContent.replace(/version: '\d+\.\d+\.\d+'/, `version: '${version}'`);
+      fs.writeFileSync(indexJsPath, indexJsContent, 'utf8');
+      console.log(`src/index.js版本已更新为: ${version}`);
+    }
+    
+    // 更新README.md中的版本号
+    const readmePath = path.join(__dirname, 'README.md');
+    if (fs.existsSync(readmePath)) {
+      let readmeContent = fs.readFileSync(readmePath, 'utf8');
+      // 更新version信息
+      readmeContent = readmeContent.replace(/version: \d+\.\d+\.\d+/i, `version: ${version}`);
+      fs.writeFileSync(readmePath, readmeContent, 'utf8');
+      console.log(`README.md版本已更新为: ${version}`);
+    }
+    
   } catch (error) {
     console.error('更新版本号失败:', error);
   }
