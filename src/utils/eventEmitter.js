@@ -3,6 +3,8 @@
  * 实现模块间通信的事件发布订阅模式
  */
 
+import logger from './logger.js';
+
 class EventEmitter {
   /**
    * 构造函数
@@ -40,7 +42,7 @@ class EventEmitter {
 
     // 检查监听器数量限制
     if (this.events[event].length >= this.maxListeners && !this.events[event].includes(listener)) {
-      console.warn(`警告: 事件'${event}'的监听器数量超过了${this.maxListeners}个。` +
+      logger.warn(`警告: 事件'${event}'的监听器数量超过了${this.maxListeners}个。` +
                  `使用setMaxListeners方法可以修改此限制。`);
     }
 
@@ -123,7 +125,7 @@ class EventEmitter {
       try {
         listener.apply(this, args);
       } catch (error) {
-        console.error(`事件'${event}'的监听器执行出错:`, error);
+        logger.error(`事件'${event}'的监听器执行出错:`, error);
       }
     });
 

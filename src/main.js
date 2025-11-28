@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音网页版UI定制工具
 // @namespace    http://tampermonkey.net/
-// @version 1.0.146
+// @version 1.0.149
 // @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
 // @author       SutChan
 // @match        *://*.douyin.com/*
@@ -16,7 +16,7 @@
 /**
  * 抖音Web端界面UI定制工具主入口
  * 作者：SutChan
- * 版本：1.0.140
+ * 版本：1.0.148
  */
 
 // 导入工具模块
@@ -30,7 +30,7 @@ import UIManager from './ui_manager.js';
 import themeManager from './styles/theme.js';
 
 // 当前脚本版本
-const CURRENT_VERSION = '1.0.146';
+const CURRENT_VERSION = '1.0.149';
 // 更新检查间隔（毫秒）
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24小时
 
@@ -177,11 +177,8 @@ async function injectStyles(theme) {
       styleElement.id = 'douyin-ui-customizer-styles';
       
       // 根据主题选择样式
-      if (theme === 'dark') {
-        styleElement.textContent = darkStyles;
-      } else {
-        styleElement.textContent = defaultStyles;
-      }
+      // 备用样式逻辑：使用空字符串，因为主题管理器应该负责加载样式
+      styleElement.textContent = '';
       
       document.head.appendChild(styleElement);
     }
@@ -204,7 +201,7 @@ async function injectStyles(theme) {
  * @returns {string} 自定义CSS
  */
 function generateCustomStyles() {
-  const config = loadConfig();
+  const config = configManager.getConfig();
   let customCSS = '';
   
   // 添加用于隐藏元素的CSS类，确保优先级
@@ -314,20 +311,20 @@ function generateCustomStyles() {
  * @param {UIManager} uiManager - UI管理器实例
  */
 function observePageChanges(uiManager) {
-  console.log('开始监听页面变化...');
+  logger.info('开始监听页面变化...');
   
   // 防抖函数，避免频繁触发UI更新
   const debouncedApplyCustomizations = debounce(() => {
-    console.log('应用UI定制...');
+    logger.info('应用UI定制...');
     // 检查是否是短视频页面
     if (isVideoPage()) {
-      console.log('检测到短视频页面，应用视频定制');
+      logger.info('检测到短视频页面，应用视频定制');
       uiManager.applyVideoCustomizations();
     }
     
     // 检查是否是直播间页面
     if (isLivePage()) {
-      console.log('检测到直播间页面，应用直播定制');
+      logger.info('检测到直播间页面，应用直播定制');
       uiManager.applyLiveCustomizations();
     }
   }, 300);
@@ -375,7 +372,7 @@ function observePageChanges(uiManager) {
   const initialApplyDelay = [500, 2000, 5000];
   initialApplyDelay.forEach((delay, index) => {
     setTimeout(() => {
-      console.log(`初始应用UI定制 (尝试 ${index + 1}/${initialApplyDelay.length})`);
+      logger.info(`初始应用UI定制 (尝试 ${index + 1}/${initialApplyDelay.length})`);
       if (isVideoPage()) {
         uiManager.applyVideoCustomizations();
       }
@@ -468,7 +465,7 @@ let globalUIManager = null;
 // 全局初始化UI管理器函数
 function initUIManager() {
   if (!globalUIManager) {
-    const config = loadConfig();
+    const config = configManager.getConfig();
     globalUIManager = new UIManager(config);
   }
   return globalUIManager;
@@ -484,10 +481,9 @@ GM_registerMenuCommand('打开设置面板', () => {
 // 切换暗黑模式
 GM_registerMenuCommand('切换暗黑模式', async () => {
   try {
-    const config = loadConfig();
+    const config = configManager.getConfig();
     const newTheme = config.theme === 'dark' ? 'light' : 'dark';
-    config.theme = newTheme;
-    saveConfig(config);
+    configManager.setConfig('theme', newTheme);
     
     // 使用主题管理器切换主题
     await themeManager.applyTheme(newTheme);
@@ -505,7 +501,7 @@ GM_registerMenuCommand('检查更新', () => {
 // 重置所有设置
 GM_registerMenuCommand('重置所有设置', () => {
   if (confirm('确定要重置所有设置吗？')) {
-    resetConfig();
+    configManager.resetConfig();
     location.reload();
   }
 });
@@ -569,7 +565,7 @@ function ensureInit() {
   try {
     init();
   } catch (error) {
-    console.error('初始化失败，将重试:', error);
+    logger.error('初始化失败，将重试:', error);
     // 如果初始化失败，500ms后重试
     setTimeout(init, 500);
   }
@@ -594,7 +590,7 @@ let lastHref = location.href;
 setInterval(() => {
   if (location.href !== lastHref) {
     lastHref = location.href;
-    console.log('检测到页面URL变化，重新应用UI定制');
+    logger.info('检测到页面URL变化，重新应用UI定制');
     ensureInit();
   }
 }, 1000);

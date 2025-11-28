@@ -1,13 +1,12 @@
 ---
-version: 1.2
-last_updated: 2024-06-19
+version: 1.3
+last_updated: 2025-11-27
 author: Sut
-changelog: "修复编码问题，重写附录README文档"
+changelog: "修复编码问题，更新附录内容，统一格式规范"
 ---
 
 # 附录
-本附录提供了抖音UI定制器(DOUYIN TOOL)的详细参考资料，包括技术栈、API说明、快捷键设置、配置说明和常见问题等。
-
+本文档提供了抖音UI定制器(DOUYIN TOOL)的完整参考资料，包括技术栈、API说明、快捷键设置、配置说明和常见问题等。
 ## 目录
 - [技术栈说明](#技术栈说明)
 - [API参考](#api参考)
@@ -81,7 +80,7 @@ uiManager.adjustLayout(layout);
 
 | 快捷键 | 功能说明 |
 |-------|---------|
-| `Ctrl+Shift+D` | 切换暗黑/浅色主题 |
+| `Ctrl+Shift+D` | 切换浅色/深色主题 |
 | `Ctrl+Shift+H` | 显示/隐藏配置面板 |
 | `Ctrl+Shift+R` | 重置所有配置 |
 
@@ -90,7 +89,7 @@ uiManager.adjustLayout(layout);
 
 ```json
 {
-  "theme": "default", // 主题：default(默认) 或 dark(暗黑)
+  "theme": "default", // 主题，default(默认) 或 dark(深色)
   "elements": {       // 元素显示控制
     "sidebar": true,  // 侧边栏
     "comments": true, // 评论区
@@ -121,7 +120,7 @@ uiManager.adjustLayout(layout);
 - Edge 80+
 - Safari 13+
 
-### 4. 如何报告问题或提出建议？
+### 4. 如何反馈问题或提出建议？
 **解决方法**：
 - 在GitHub仓库中提交Issue
 - 提供详细的问题描述和复现步骤
@@ -146,5 +145,5 @@ uiManager.adjustLayout(layout);
 - 避免频繁的DOM操作
 - 使用事件委托减少事件监听器数量
 - 合理使用缓存减少重复计算
-- 优化CSS选择器，避免复杂的嵌套选择器
+- 优化CSS选择器，避免复杂的后代选择器
 - 延迟加载非关键资源

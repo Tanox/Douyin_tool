@@ -3,6 +3,8 @@
  * 提供性能监控、指标收集、帧率监控等功能
  */
 
+import logger from './logger.js';
+
 class PerformanceMonitor {
   /**
    * 构造函数
@@ -161,7 +163,7 @@ class PerformanceMonitor {
       
       return result;
     } catch (error) {
-      console.error(`测量执行时间出错 [${id}]:`, error);
+      logger.error(`测量执行时间出错 [${id}]:`, error);
       throw error;
     }
   }

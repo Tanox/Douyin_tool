@@ -9,15 +9,14 @@ changelog: "更新文档格式和内容，修复编码问题"
 
 ## 文档列表
 
-- [工作流程规范(workflow.md) - 详细说明项目的开发流程、代码提交规范和团队协作方式](workflow.md)
-- [编码规范(coding-standards.md) - 定义了JavaScript、CSS等代码的编写规范和最佳实践](coding-standards.md)
-- [版本控制规范(version-control.md) - 详细说明Git分支管理、提交信息格式和版本发布流程](version-control.md)
-- [API文档(api.md) - 详细说明项目中使用的所有API及其使用方法](api.md)
-- [实现指南(implementation.md) - 详细说明如何实现项目的各个功能模块](implementation.md)
-- [模块设计(modules.md) - 详细说明项目的模块划分和各模块的功能](modules.md)
-- [兼容性与安全(compatibility_security.md) - 详细说明项目的浏览器兼容性和安全措施](compatibility_security.md)
-- [规格说明(specifications.md) - 详细说明项目的技术规格和要求](specifications.md)
-- [性能优化(performance_optimization.md) - 详细说明项目的性能优化策略和方法](performance_optimization.md)
+- [API文档(API文档.md) - 详细说明项目中使用的所有API及其使用方法](API文档.md)
+- [兼容性与安全性(兼容性与安全性.md) - 详细说明项目的浏览器兼容性和安全措施](兼容性与安全性.md)
+- [实现方案(实现方案.md) - 详细说明如何实现项目的各个功能模块](实现方案.md)
+- [模块说明(模块说明.md) - 详细说明项目的模块划分和各模块的功能](模块说明.md)
+- [性能优化(性能优化.md) - 详细说明项目的性能优化策略和方法](性能优化.md)
+- [技术规范(技术规范.md) - 定义了JavaScript、CSS等代码的编写规范和最佳实践](技术规范.md)
+- [工作流程(工作流程.md) - 详细说明项目的开发流程、代码提交规范和团队协作方式](工作流程.md)
+- [版本历史(version_history.md) - 记录项目的版本更新历史](version_history.md)
 
 ## 文档使用说明
 
@@ -29,11 +28,11 @@ changelog: "更新文档格式和内容，修复编码问题"
 
 ## API文档
 
-API文档详细说明在[API文档(api.md)](api.md)中。
+API文档详细说明在[API文档(API文档.md)](API文档.md)中。
 
 ## 模块设计
 
-模块设计详细说明在[模块设计(modules.md)](modules.md)中。
+模块设计详细说明在[模块设计(模块说明.md)](模块说明.md)中。
 
 ## 技术实现
 

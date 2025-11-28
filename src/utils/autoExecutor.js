@@ -56,6 +56,8 @@ class AutoExecutor {
       enableLogging: true,
       // 截图验证
       captureScreenshots: false,
+      // 历史记录最大数量
+      maxHistorySize: 100,
       ...options
     };
 
@@ -481,6 +483,20 @@ class AutoExecutor {
   }
 
   /**
+   * 压缩历史记录，限制最大数量
+   */
+  compressHistory() {
+    if (this.executionHistory.length > this.options.maxHistorySize) {
+      // 只保留最近的maxHistorySize条记录
+      this.executionHistory = this.executionHistory.slice(-this.options.maxHistorySize);
+      
+      if (this.options.enableLogging) {
+        logger.info(`AutoExecutor compressed history to ${this.executionHistory.length} records`);
+      }
+    }
+  }
+
+  /**
    * 点击按钮
    * @param {HTMLElement} button - 要点击的按钮
    */
@@ -507,6 +523,9 @@ class AutoExecutor {
         success: true
       });
 
+      // 压缩历史记录
+      this.compressHistory();
+
       if (this.options.enableLogging) {
         logger.info(`AutoExecutor clicked button: ${button.textContent || button.innerText}`);
       }
@@ -526,6 +545,9 @@ class AutoExecutor {
         success: false,
         error: error.message
       });
+
+      // 压缩历史记录
+      this.compressHistory();
 
       if (this.options.enableLogging) {
         logger.error('AutoExecutor failed to click button:', error);
@@ -617,6 +639,26 @@ class AutoExecutor {
         executionHistory: this.executionHistory.slice(-10), // 返回最近10条记录
         options: this.options
       };
+  }
+
+  /**
+   * 获取执行历史记录
+   * @param {number} limit - 返回记录的最大数量，默认返回全部
+   * @returns {Array} 执行历史记录数组
+   */
+  getExecutionHistory(limit = null) {
+    if (limit) {
+      return this.executionHistory.slice(-limit);
+    }
+    return [...this.executionHistory];
+  }
+
+  /**
+   * 获取当前尝试次数
+   * @returns {number} 当前尝试次数
+   */
+  getCurrentAttempt() {
+    return this.currentAttempt;
   }
 
   /**

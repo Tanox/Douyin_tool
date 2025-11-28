@@ -34,6 +34,7 @@ douyin_tool/
 ├── dist/            # 构建输出目录
 ├── docs/            # 文档目录
 ├── build.js         # 构建脚本
+├── vite.config.js   # Vite构建配置
 └── package.json     # 项目依赖配置
 ```
 
@@ -48,7 +49,7 @@ npm install
 ### 2. 构建项目
 运行构建脚本生成用户脚本：
 ```bash
-node build.js
+npm run build
 ```
 
 构建产物将生成在 `dist` 目录中。

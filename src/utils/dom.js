@@ -3,6 +3,9 @@
  * 提供丰富的DOM操作功能，支持界面元素查找、操作和监听
  */
 
+import logger from './logger.js';
+
+
 /**
  * 防抖函数
  * @param {Function} func - 要防抖的函数
@@ -48,7 +51,7 @@ export function getElement(selector, parent = document) {
   try {
     return parent.querySelector(selector);
   } catch (error) {
-    console.error(`获取元素失败 (${selector}):`, error);
+    logger.error(`获取元素失败 (${selector}):`, error);
     return null;
   }
 }
@@ -63,7 +66,7 @@ export function getElements(selector, parent = document) {
   try {
     return Array.from(parent.querySelectorAll(selector));
   } catch (error) {
-    console.error(`获取多个元素失败 (${selector}):`, error);
+    logger.error(`获取多个元素失败 (${selector}):`, error);
     return [];
   }
 }
@@ -86,7 +89,7 @@ export function findElementsByClassPattern(pattern, parent = document) {
       }
     }
   } catch (error) {
-    console.error('通过类名模式查找元素失败:', error);
+    logger.error('通过类名模式查找元素失败:', error);
   }
   return elements;
 }
@@ -145,7 +148,7 @@ export function findElementsByStructure(options, parent = document) {
       }
     }
   } catch (error) {
-    console.error('通过结构查找元素失败:', error);
+    logger.error('通过结构查找元素失败:', error);
   }
   return result;
 }
@@ -164,7 +167,7 @@ export function toggleElements(elements, show) {
       }
     });
   } catch (error) {
-    console.error('切换元素显示状态失败:', error);
+    logger.error('切换元素显示状态失败:', error);
   }
 }
 
@@ -182,7 +185,7 @@ export function addClass(element, className) {
       if (cls) element.classList.add(cls);
     });
   } catch (error) {
-    console.error('添加CSS类失败:', error);
+    logger.error('添加CSS类失败:', error);
   }
 }
 
@@ -200,7 +203,7 @@ export function removeClass(element, className) {
       if (cls) element.classList.remove(cls);
     });
   } catch (error) {
-    console.error('移除CSS类失败:', error);
+    logger.error('移除CSS类失败:', error);
   }
 }
 
@@ -217,7 +220,7 @@ export function addEvent(element, eventType, handler, options = {}) {
       element.addEventListener(eventType, handler, options);
     }
   } catch (error) {
-    console.error(`添加事件监听器失败 (${eventType}):`, error);
+    logger.error(`添加事件监听器失败 (${eventType}):`, error);
   }
 }
 
@@ -234,7 +237,7 @@ export function removeEvent(element, eventType, handler, options = {}) {
       element.removeEventListener(eventType, handler, options);
     }
   } catch (error) {
-    console.error(`移除事件监听器失败 (${eventType}):`, error);
+    logger.error(`移除事件监听器失败 (${eventType}):`, error);
   }
 }
 
@@ -271,7 +274,7 @@ export function createElement(tagName, attributes = {}, children = []) {
     
     return element;
   } catch (error) {
-    console.error(`创建元素失败 (${tagName}):`, error);
+    logger.error(`创建元素失败 (${tagName}):`, error);
     return document.createElement(tagName);
   }
 }
@@ -289,7 +292,7 @@ export function injectStyle(css) {
     document.head.appendChild(styleElement);
     return styleElement;
   } catch (error) {
-    console.error('注入样式失败:', error);
+    logger.error('注入样式失败:', error);
     return null;
   }
 }

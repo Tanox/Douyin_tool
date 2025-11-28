@@ -3,6 +3,8 @@
  * 提供丰富的数据存储功能，支持嵌套数据、过期时间和批量操作
  */
 
+import logger from './logger.js';
+
 /**
  * 安全地获取本地存储数据
  * @param {string} key - 存储键名
@@ -25,7 +27,7 @@ export function getItem(key, defaultValue = null) {
     // 返回实际数据或整个对象（如果没有包装）
     return parsed._data !== undefined ? parsed._data : parsed;
   } catch (error) {
-    console.error(`获取存储数据失败 (${key}):`, error);
+    logger.error(`获取存储数据失败 (${key}):`, error);
     return defaultValue;
   }
 }
@@ -54,7 +56,7 @@ export function setItem(key, value, expiresIn) {
     localStorage.setItem(key, JSON.stringify(dataToStore));
     return true;
   } catch (error) {
-    console.error(`设置存储数据失败 (${key}):`, error);
+    logger.error(`设置存储数据失败 (${key}):`, error);
     return false;
   }
 }
@@ -69,7 +71,7 @@ export function removeItem(key) {
     localStorage.removeItem(key);
     return true;
   } catch (error) {
-    console.error(`删除存储数据失败 (${key}):`, error);
+    logger.error(`删除存储数据失败 (${key}):`, error);
     return false;
   }
 }
@@ -83,7 +85,7 @@ export function clearAll() {
     localStorage.clear();
     return true;
   } catch (error) {
-    console.error('清除所有存储数据失败:', error);
+    logger.error('清除所有存储数据失败:', error);
     return false;
   }
 }
@@ -110,7 +112,7 @@ export function getNestedItem(key, path, defaultValue = null) {
     
     return current !== undefined ? current : defaultValue;
   } catch (error) {
-    console.error(`获取嵌套数据失败 (${key}.${path}):`, error);
+    logger.error(`获取嵌套数据失败 (${key}.${path}):`, error);
     return defaultValue;
   }
 }
@@ -145,7 +147,7 @@ export function setNestedItem(key, path, value, expiresIn) {
     // 保存更新后的数据
     return setItem(key, data, expiresIn);
   } catch (error) {
-    console.error(`设置嵌套数据失败 (${key}.${path}):`, error);
+    logger.error(`设置嵌套数据失败 (${key}.${path}):`, error);
     return false;
   }
 }
@@ -205,7 +207,7 @@ export function hasItem(key) {
   try {
     return localStorage.getItem(key) !== null;
   } catch (error) {
-    console.error(`检查键是否存在失败 (${key}):`, error);
+    logger.error(`检查键是否存在失败 (${key}):`, error);
     return false;
   }
 }
@@ -222,7 +224,7 @@ export function getAllKeys() {
     }
     return keys;
   } catch (error) {
-    console.error('获取所有键名失败:', error);
+    logger.error('获取所有键名失败:', error);
     return [];
   }
 }
@@ -252,7 +254,7 @@ export function getStorageInfo() {
       items: items
     };
   } catch (error) {
-    console.error('获取存储信息失败:', error);
+    logger.error('获取存储信息失败:', error);
     return {
       totalItems: 0,
       totalSize: 0,
@@ -343,7 +345,7 @@ export class NamespacedStorage {
       keysToRemove.forEach(key => localStorage.removeItem(key));
       return true;
     } catch (error) {
-      console.error(`清除命名空间 ${this.namespace} 失败:`, error);
+      logger.error(`清除命名空间 ${this.namespace} 失败:`, error);
       return false;
     }
   }
