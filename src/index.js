@@ -14,11 +14,11 @@ async function initializeApp() {
     // 启动性能监控
     performanceMonitor.start();
     logger.info('应用初始化开始...');
-    
+
     // 初始化主题管理器
     themeManager.initialize();
     logger.info('主题管理器初始化完成');
-    
+
     // 等待DOM加载完成
     await new Promise(resolve => {
       if (document.readyState === 'complete' || document.readyState === 'interactive') {
@@ -27,9 +27,9 @@ async function initializeApp() {
         document.addEventListener('DOMContentLoaded', resolve);
       }
     });
-    
+
     logger.info('DOM加载完成');
-    
+
     // 导出全局API
     window.douyinUICustomizer = {
       // 主题API
@@ -40,7 +40,7 @@ async function initializeApp() {
         createTheme: (themeName, config) => themeManager.createTheme(themeName, config),
         deleteTheme: (themeName) => themeManager.deleteTheme(themeName)
       },
-      
+
       // 元素控制API
       elements: {
         hide: (selector) => elementController.hideElement(selector),
@@ -50,7 +50,7 @@ async function initializeApp() {
         resetStyle: (selector) => elementController.resetElementStyle(selector),
         identify: (selector) => elementController.identifyElements(selector)
       },
-      
+
       // 布局API
       layout: {
         apply: (layoutName) => layoutController.applyLayout(layoutName),
@@ -62,31 +62,31 @@ async function initializeApp() {
         export: (layoutName) => layoutController.exportLayout(layoutName),
         import: (layoutJson) => layoutController.importLayout(layoutJson)
       },
-      
+
       // 事件API
       events: {
         on: (event, callback) => eventEmitter.on(event, callback),
         off: (event, callback) => eventEmitter.off(event, callback),
         emit: (event, data) => eventEmitter.emit(event, data)
       },
-      
+
       // 性能监控API
       performance: {
         start: () => performanceMonitor.start(),
         stop: () => performanceMonitor.stop(),
         getMetrics: () => performanceMonitor.getMetrics()
       },
-      
+
       // 版本信息
       version: '1.0.149'
     };
-    
+
     logger.info('全局API导出完成');
-    
+
     // 触发应用初始化完成事件
     eventEmitter.emit('app.initialized');
     performanceMonitor.stop();
-    
+
     logger.info('应用初始化完成');
   } catch (error) {
     logger.error('应用初始化失败:', error);
@@ -101,7 +101,7 @@ function setupErrorHandling() {
     logger.error('全局错误:', error);
     eventEmitter.emit('app.error', error);
   });
-  
+
   // 监听Promise错误
   window.addEventListener('unhandledrejection', (event) => {
     logger.error('未处理的Promise错误:', event.reason);

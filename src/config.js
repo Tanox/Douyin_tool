@@ -1,6 +1,9 @@
 /**
+ * src/config.js
  * 配置管理模块
  * 负责处理配置的加载、保存和默认设置
+ * 版本：1.0.149
+ * 更新日期：2026-01-09 18:35
  */
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
@@ -22,7 +25,7 @@ const CONFIG_VERSION = '1.4.0';
 const DEFAULT_CONFIG = {
   version: CONFIG_VERSION,
   theme: 'light', // light 或 dark
-  
+
   // 短视频界面配置
   videoUI: {
     showLikeButton: true,
@@ -46,7 +49,7 @@ const DEFAULT_CONFIG = {
       loop: false
     }
   },
-  
+
   // 直播间界面配置
   liveUI: {
     showGifts: true,
@@ -65,7 +68,7 @@ const DEFAULT_CONFIG = {
     layout: 'default',
     volume: 100
   },
-  
+
   // 通用配置
   general: {
     autoPlay: true,
@@ -76,7 +79,7 @@ const DEFAULT_CONFIG = {
     animations: true,
     updateCheck: true
   },
-  
+
   // 高级配置
   advanced: {
     debugMode: false,
@@ -96,7 +99,7 @@ let currentConfig = null;
 export function loadConfig() {
   try {
     const savedConfig = configStorage.getItem(CONFIG_KEY);
-    
+
     if (savedConfig) {
       logger.info('[抖音工具] 加载已保存的配置');
       // 检查配置版本，如果版本不匹配，进行迁移
@@ -109,10 +112,10 @@ export function loadConfig() {
       logger.info('[抖音工具] 使用默认配置');
       currentConfig = { ...DEFAULT_CONFIG };
     }
-    
+
     // 保存更新后的配置
     saveConfig(currentConfig);
-    
+
     return currentConfig;
   } catch (error) {
     logger.error('[抖音工具] 加载配置失败：', error);
@@ -145,7 +148,7 @@ export function setConfig(key, value) {
     if (!currentConfig) {
       loadConfig();
     }
-    
+
     if (typeof key === 'object') {
       // 如果传入的是完整配置对象，合并到当前配置
       currentConfig = mergeConfig(key, currentConfig);
@@ -159,13 +162,13 @@ export function setConfig(key, value) {
         currentConfig[key] = value;
       }
     }
-    
+
     // 更新配置版本
     currentConfig.version = CONFIG_VERSION;
-    
+
     // 保存更新后的配置
     saveConfig(currentConfig);
-    
+
     return true;
   } catch (error) {
     logger.error('[抖音工具] 设置配置失败：', error);
@@ -182,7 +185,7 @@ export function setConfig(key, value) {
 function setNestedConfig(path, value) {
   const keys = path.split('.');
   let obj = currentConfig;
-  
+
   // 导航到目标路径的父级
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
@@ -191,7 +194,7 @@ function setNestedConfig(path, value) {
     }
     obj = obj[key];
   }
-  
+
   // 设置最终值
   obj[keys[keys.length - 1]] = value;
 }
@@ -206,12 +209,12 @@ export function getConfigValue(path, defaultValue = undefined) {
   if (!currentConfig) {
     loadConfig();
   }
-  
+
   if (path.includes('.')) {
     // 支持嵌套路径
     return getNestedItemFromConfig(path, defaultValue);
   }
-  
+
   // 顶层配置
   return currentConfig[path] !== undefined ? currentConfig[path] : defaultValue;
 }
@@ -225,14 +228,14 @@ export function getConfigValue(path, defaultValue = undefined) {
 function getNestedItemFromConfig(path, defaultValue) {
   const keys = path.split('.');
   let obj = currentConfig;
-  
+
   for (const key of keys) {
     if (obj === null || obj === undefined || typeof obj !== 'object' || !(key in obj)) {
       return defaultValue;
     }
     obj = obj[key];
   }
-  
+
   return obj;
 }
 
@@ -279,12 +282,12 @@ export function resetConfig() {
  */
 function mergeConfig(userConfig, defaultConfig) {
   const merged = { ...defaultConfig };
-  
+
   for (const key in userConfig) {
     if (Object.prototype.hasOwnProperty.call(userConfig, key)) {
-      if (typeof userConfig[key] === 'object' && userConfig[key] !== null && 
-          typeof defaultConfig[key] === 'object' && defaultConfig[key] !== null &&
-          !Array.isArray(userConfig[key]) && !Array.isArray(defaultConfig[key])) {
+      if (typeof userConfig[key] === 'object' && userConfig[key] !== null &&
+        typeof defaultConfig[key] === 'object' && defaultConfig[key] !== null &&
+        !Array.isArray(userConfig[key]) && !Array.isArray(defaultConfig[key])) {
         // 递归合并嵌套对象
         merged[key] = mergeConfig(userConfig[key], defaultConfig[key]);
       } else {
@@ -292,7 +295,7 @@ function mergeConfig(userConfig, defaultConfig) {
       }
     }
   }
-  
+
   return merged;
 }
 
@@ -305,28 +308,28 @@ function migrateConfig(oldConfig) {
   // 如果没有版本信息或版本不匹配，执行迁移
   if (!oldConfig.version || oldConfig.version !== CONFIG_VERSION) {
     logger.info(`[抖音工具] 执行配置迁移: ${oldConfig.version || 'unknown'} -> ${CONFIG_VERSION}`);
-    eventEmitter.emit('config.migrating', { 
+    eventEmitter.emit('config.migrating', {
       fromVersion: oldConfig.version || 'unknown',
-      toVersion: CONFIG_VERSION 
+      toVersion: CONFIG_VERSION
     });
-    
+
     // 这里可以添加具体的迁移逻辑
     // 例如，添加新配置项，修改配置结构等
-    
+
     // 确保配置包含必要的新版本字段
     if (!oldConfig.advanced) {
       oldConfig.advanced = DEFAULT_CONFIG.advanced;
     }
-    
+
     if (!oldConfig.videoUI.playback) {
       oldConfig.videoUI.playback = DEFAULT_CONFIG.videoUI.playback;
     }
-    
+
     if (!oldConfig.liveUI.maxLines) {
       oldConfig.liveUI.danmaku.maxLines = DEFAULT_CONFIG.liveUI.danmaku.maxLines;
     }
   }
-  
+
   return oldConfig;
 }
 
@@ -355,19 +358,19 @@ export function exportConfig() {
 export function importConfig(jsonString) {
   try {
     const config = JSON.parse(jsonString);
-    
+
     // 验证配置格式
     if (typeof config !== 'object' || config === null) {
       throw new Error('配置格式无效');
     }
-    
+
     // 合并导入的配置和默认配置，确保所有必需字段都存在
     currentConfig = mergeConfig(config, DEFAULT_CONFIG);
     // 更新配置版本
     currentConfig.version = CONFIG_VERSION;
     // 保存配置
     saveConfig(currentConfig);
-    
+
     logger.info('[抖音工具] 配置导入成功');
     eventEmitter.emit('config.imported', { config: currentConfig });
     return true;
@@ -385,37 +388,37 @@ export function importConfig(jsonString) {
  */
 export function validateConfig(config) {
   const issues = [];
-  
+
   try {
     // 验证主题配置
     if (config.theme && !['light', 'dark'].includes(config.theme)) {
       issues.push('主题配置无效，应为 light 或 dark');
     }
-    
+
     // 验证布局配置
     if (config.videoUI?.layout && !['default', 'compact', 'fullscreen'].includes(config.videoUI.layout)) {
       issues.push('视频界面布局配置无效');
     }
-    
+
     if (config.liveUI?.layout && !['default', 'minimal', 'immersive'].includes(config.liveUI.layout)) {
       issues.push('直播间界面布局配置无效');
     }
-    
+
     // 验证数值范围
     if (config.liveUI?.danmaku?.fontSize && (config.liveUI.danmaku.fontSize < 12 || config.liveUI.danmaku.fontSize > 36)) {
       issues.push('弹幕字体大小应在 12-36 之间');
     }
-    
+
     if (config.liveUI?.danmaku?.opacity && (config.liveUI.danmaku.opacity < 0.1 || config.liveUI.danmaku.opacity > 1)) {
       issues.push('弹幕透明度应在 0.1-1 之间');
     }
-    
+
   } catch (error) {
     logger.error('[抖音工具] 验证配置失败：', error);
     eventEmitter.emit('config.error', { type: 'validate', error });
     issues.push('配置验证过程中发生错误');
   }
-  
+
   return {
     valid: issues.length === 0,
     issues: issues
