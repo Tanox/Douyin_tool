@@ -34,7 +34,16 @@ function cleanupCache() {
 }
 
 // 定期清理缓存
-setInterval(cleanupCache, cacheExpiry * 2);
+let cleanupInterval = setInterval(cleanupCache, cacheExpiry * 2);
+
+/**
+ * 清理模块资源
+ */
+export function cleanup() {
+  clearInterval(cleanupInterval);
+  clearDomCache();
+  logger.info('DOM工具模块已清理');
+}
 
 /**
  * 防抖函数
@@ -170,14 +179,13 @@ export function findElementsByClassPattern(pattern, parent = document) {
       }
     }
     
-    // 回退到原始方法
-    const allElements = parent.getElementsByTagName('*');
-    for (let i = 0; i < allElements.length; i++) {
-      const element = allElements[i];
-      if (element.className && pattern.test(element.className)) {
+    // 回退到原始方法（优化版本）
+    const allElements = parent.querySelectorAll('[class]');
+    allElements.forEach(element => {
+      if (pattern.test(element.className)) {
         elements.push(element);
       }
-    }
+    });
     
     // 存入缓存
     domCache.set(cacheKey, {

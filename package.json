@@ -1,6 +1,6 @@
 {
   "name": "douyin-ui-customizer",
-  "version": "1.0.151",
+  "version": "1.1.0",
   "description": "抖音Web端界面UI定制工具",
   "main": "src/main.js",
   "scripts": {

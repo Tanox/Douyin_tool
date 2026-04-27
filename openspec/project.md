@@ -4,7 +4,7 @@
 
 - **项目名称**: 抖音UI定制器
 - **项目署名**: Sut
-- **项目版本**: 1.0.149
+- **项目版本**: 1.1.0
 - **基础 URL**: <https://github.com/sutchan/douyin_tool>
 
 ## 2. 技术栈
@@ -16,8 +16,22 @@
 ## 3. 目录结构
 
 - `src/`: 源代码
+  - `controllers/`: 控制器模块
+    - `elementController.js`: 元素控制
+    - `layoutController.js`: 布局管理
   - `styles/`: 样式文件目录
+    - `dark.css`: 深色主题
+    - `default.css`: 默认主题
+    - `index.js`: 样式管理
+    - `theme.js`: 主题管理器
   - `utils/`: 工具函数目录
+    - `autoExecutor.js`: 自动执行控制器
+    - `dom.js`: DOM操作工具
+    - `eventEmitter.js`: 事件总线
+    - `index.js`: 工具统一导出
+    - `logger.js`: 日志系统
+    - `performance.js`: 性能监控
+    - `storage.js`: 存储工具
   - `config.js`: 配置管理
   - `index.js`: 项目入口文件
   - `main.js`: 主程序逻辑
@@ -168,4 +182,144 @@
 - **代码安全**: 避免使用可能导致XSS的代码
 - **数据存储**: 敏感数据必须加密存储
 - **API使用**: 遵循浏览器安全策略，避免跨域问题
+
+## 12. 功能特性
+
+### 12.1 核心功能
+
+- **短视频界面定制**
+  - 隐藏/显示点赞、评论、分享按钮
+  - 自定义作者信息和音乐信息显示
+  - 调整控制栏位置和大小
+  - 播放控制（自动播放、循环）
+
+- **直播间界面定制**
+  - 隐藏礼物动画和相关元素
+  - 自定义弹幕样式（字体大小、颜色、速度）
+  - 隐藏推荐和广告
+  - 音量控制
+
+- **主题系统**
+  - 浅色/深色/极简主题
+  - 自定义主题创建
+  - 主题导入导出
+  - 实时主题预览
+
+- **布局管理**
+  - 预设布局方案
+  - 自定义布局保存
+  - 布局导入导出
+  - 响应式布局调整
+
+### 12.2 API接口
+
+- **主题API**
+  - `setTheme(theme)`: 设置主题
+  - `getTheme()`: 获取当前主题
+  - `getAvailableThemes()`: 获取可用主题
+  - `createTheme(themeName, config)`: 创建主题
+  - `deleteTheme(themeName)`: 删除主题
+
+- **元素控制API**
+  - `hide(selector)`: 隐藏元素
+  - `show(selector)`: 显示元素
+  - `toggle(selector)`: 切换元素显示状态
+  - `modifyStyle(selector, styles)`: 修改元素样式
+  - `resetStyle(selector)`: 重置元素样式
+  - `identify(selector)`: 识别元素
+
+- **布局API**
+  - `apply(layoutName)`: 应用布局
+  - `save(layoutName, config)`: 保存布局
+  - `getCurrent()`: 获取当前布局
+  - `getAvailable()`: 获取可用布局
+  - `reset()`: 重置布局
+  - `delete(layoutName)`: 删除布局
+  - `export(layoutName)`: 导出布局
+  - `import(layoutJson)`: 导入布局
+
+- **事件API**
+  - `on(event, callback)`: 监听事件
+  - `off(event, callback)`: 取消监听
+  - `emit(event, data)`: 触发事件
+
+- **性能监控API**
+  - `start()`: 开始性能监控
+  - `stop()`: 停止性能监控
+  - `getMetrics()`: 获取性能指标
+
+## 13. 配置管理
+
+### 13.1 配置结构
+
+```javascript
+{
+  version: '1.4.0',
+  theme: 'light',
+  videoUI: {
+    showLikeButton: true,
+    showCommentButton: true,
+    showShareButton: true,
+    showAuthorInfo: true,
+    showMusicInfo: true,
+    showDescription: true,
+    showRecommendations: true,
+    layout: 'default',
+    controlBar: {
+      show: true,
+      autoHide: true,
+      position: 'bottom',
+      size: 'medium',
+      opacity: 0.9
+    },
+    playback: {
+      defaultQuality: 'auto',
+      autoPlay: true,
+      loop: false
+    }
+  },
+  liveUI: {
+    showGifts: true,
+    showDanmaku: true,
+    showRecommendations: true,
+    showAds: false,
+    showStats: true,
+    danmaku: {
+      fontSize: 16,
+      color: '#FFFFFF',
+      opacity: 0.8,
+      speed: 'medium',
+      position: 'top',
+      maxLines: 5
+    },
+    layout: 'default',
+    volume: 100
+  },
+  general: {
+    autoPlay: true,
+    autoScroll: false,
+    keyboardShortcuts: true,
+    notifications: false,
+    language: 'zh-CN',
+    animations: true,
+    updateCheck: true
+  },
+  advanced: {
+    debugMode: false,
+    performanceMode: false,
+    customCSS: '',
+    customScripts: []
+  }
+}
+```
+
+### 13.2 配置管理API
+
+- `loadConfig()`: 加载配置
+- `getConfig()`: 获取当前配置
+- `setConfig(key, value)`: 设置配置
+- `resetConfig()`: 重置为默认配置
+- `exportConfig()`: 导出配置
+- `importConfig(jsonString)`: 导入配置
+- `validateConfig(config)`: 验证配置
 

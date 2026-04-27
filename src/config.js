@@ -2,8 +2,8 @@
  * src/config.js
  * 配置管理模块
  * 负责处理配置的加载、保存和默认设置
- * 版本：1.0.149
- * 更新日期：2026-01-09 18:35
+ * 版本：1.1.0
+ * 更新日期：2026-04-27
  */
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
@@ -17,7 +17,7 @@ const configStorage = new NamespacedStorage('douyin_tool_config');
 const CONFIG_KEY = 'main';
 
 // 配置版本，用于配置迁移
-const CONFIG_VERSION = '1.4.0';
+const CONFIG_VERSION = '1.1.0';
 
 /**
  * 默认配置

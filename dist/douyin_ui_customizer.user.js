@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音Web端界面UI定制工具
 // @namespace    https://github.com/sutchan
-// @version      1.0.151
+// @version      1.1.0
 // @description  自定义抖音Web端界面，隐藏不需要的UI元素，提升观看体验
 // @author       Sut (@sutchan)
 // @match        https://www.douyin.com/*
@@ -22,8 +22,8 @@
  * src/config.js
  * 配置管理模块
  * 负责处理配置的加载、保存和默认设置
- * 版本：1.0.149
- * 更新日期：2026-01-09 18:35
+ * 版本：1.1.0
+ * 更新日期：2026-04-27
  */
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
@@ -37,7 +37,7 @@ const configStorage = new NamespacedStorage('douyin_tool_config');
 const CONFIG_KEY = 'main';
 
 // 配置版本，用于配置迁移
-const CONFIG_VERSION = '1.4.0';
+const CONFIG_VERSION = '1.1.0';
 
 /**
  * 默认配置
@@ -599,7 +599,16 @@ function cleanupCache() {
 }
 
 // 定期清理缓存
-setInterval(cleanupCache, cacheExpiry * 2);
+let cleanupInterval = setInterval(cleanupCache, cacheExpiry * 2);
+
+/**
+ * 清理模块资源
+ */
+export function cleanup() {
+  clearInterval(cleanupInterval);
+  clearDomCache();
+  logger.info('DOM工具模块已清理');
+}
 
 /**
  * 防抖函数
@@ -735,14 +744,13 @@ export function findElementsByClassPattern(pattern, parent = document) {
       }
     }
     
-    // 回退到原始方法
-    const allElements = parent.getElementsByTagName('*');
-    for (let i = 0; i < allElements.length; i++) {
-      const element = allElements[i];
-      if (element.className && pattern.test(element.className)) {
+    // 回退到原始方法（优化版本）
+    const allElements = parent.querySelectorAll('[class]');
+    allElements.forEach(element => {
+      if (pattern.test(element.className)) {
         elements.push(element);
       }
-    }
+    });
     
     // 存入缓存
     domCache.set(cacheKey, {
@@ -6421,7 +6429,7 @@ export default UIManager;
 // ==UserScript==
 // @name         抖音网页版UI定制工具
 // @namespace    http://tampermonkey.net/
-// @version 1.0.151
+// @version 1.1.0
 // @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
 // @author       SutChan
 // @match        *://*.douyin.com/*
@@ -6437,8 +6445,8 @@ export default UIManager;
  * src/main.js
  * 抖音Web端界面UI定制工具主入口
  * 作者：SutChan
- * 版本：1.0.151
- * 更新日期：2026-01-09 18:35
+ * 版本：1.1.0
+ * 更新日期：2026-04-27
  */
 
 // 导入工具模块
@@ -6452,7 +6460,7 @@ import UIManager from './ui_manager.js';
 import themeManager from './styles/theme.js';
 
 // 当前脚本版本
-const CURRENT_VERSION = '1.0.151';
+const CURRENT_VERSION = '1.1.0';
 // 更新检查间隔（毫秒）
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24小时
 
@@ -6752,7 +6760,7 @@ function observePageChanges(uiManager) {
   }, 300);
   
   // 使用MutationObserver监听DOM变化
-  const observer = new MutationObserver((mutations) => {
+  mutationObserver = new MutationObserver((mutations) => {
     // 检查是否有重要的DOM变化
     let hasSignificantChange = false;
     
@@ -6783,7 +6791,7 @@ function observePageChanges(uiManager) {
   });
   
   // 更激进的观察配置
-  observer.observe(document.documentElement, {
+  mutationObserver.observe(document.documentElement, {
     childList: true,
     subtree: true,
     attributes: true,  // 监听属性变化，包括class变化
@@ -6955,6 +6963,9 @@ function setupErrorHandling() {
   });
 }
 
+// 全局变量存储MutationObserver实例
+let mutationObserver = null;
+
 // 清理函数
 function cleanup() {
   logger.info('抖音UI定制工具执行清理');
@@ -6967,6 +6978,12 @@ function cleanup() {
     
     // 停止性能监控
     performanceMonitor.stop();
+    
+    // 断开MutationObserver
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
     
     // 移除事件监听
     eventEmitter.off('tool.init.completed');

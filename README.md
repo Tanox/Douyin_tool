@@ -17,23 +17,40 @@
 - 视频显示区域大小调整
 - 作者信息、头像、音乐信息、描述显示控制
 - 界面元素布局调整
+- 播放控制（自动播放、循环）
 - 背景色和主题切换
 
 ### 直播间界面定制
 
 - 礼物动画和特效隐藏（增强版）
-- 弹幕样式自定义（字体、颜色、透明度、速度）
+- 弹幕样式自定义（字体、颜色、透明度、速度、位置）
 - 聊天区域、礼物面板显示控制
 - 直播间推荐和广告屏蔽
 - 直播画面比例调整
 - 用户评论/礼物通知屏蔽
+- 音量控制
+
+### 主题系统
+
+- 浅色/深色/极简主题
+- 自定义主题创建
+- 主题导入导出
+- 实时主题预览
+
+### 布局管理
+
+- 预设布局方案
+- 自定义布局保存
+- 布局导入导出
+- 响应式布局调整
 
 ### 通用功能
 
 - 设置面板拖拽
-- 浅色/深色主题切换
 - 配置导出/导入
 - 自动版本更新检查
+- 性能监控
+- 详细日志系统
 
 ## 技术架构
 
@@ -41,24 +58,25 @@
 
 ```
 src/
-├── main.js              # 入口文件，负责模块初始化和协调
-├── config.js             # 配置管理，处理设置存储和加载
-├── ui_manager.js         # UI管理核心，协调各模块与页面的交互
-├── modules/
-│   ├── video_player.js   # 视频播放器定制
-│   ├── live_room.js      # 直播间定制
-│   ├── theme.js          # 主题管理
-│   ├── filter.js         # 内容过滤
-│   └── common.js         # 通用功能
+├── main.js                  # 入口文件，负责模块初始化和协调
+├── index.js                 # 应用入口，导出全局API
+├── config.js                # 配置管理，处理设置存储和加载
+├── ui_manager.js            # UI管理核心，协调各模块与页面的交互
+├── controllers/
+│   ├── elementController.js # 元素控制
+│   └── layoutController.js  # 布局管理
 ├── utils/
-│   ├── dom.js            # DOM操作封装
-│   ├── storage.js        # localStorage封装
-│   ├── logger.js         # 日志系统
-│   └── event_emitter.js  # 事件总线
+│   ├── autoExecutor.js      # 自动执行控制器
+│   ├── dom.js               # DOM操作封装
+│   ├── eventEmitter.js      # 事件总线
+│   ├── logger.js            # 日志系统
+│   ├── performance.js       # 性能监控
+│   └── storage.js           # 存储工具
 └── styles/
-    ├── default.css       # 默认主题
-    ├── dark.css          # 暗黑主题
-    └── custom.css        # 自定义样式模板
+    ├── dark.css             # 暗黑主题
+    ├── default.css          # 默认主题
+    ├── index.js             # 样式管理
+    └── theme.js             # 主题管理器
 ```
 
 ### 技术实现
@@ -114,16 +132,24 @@ npm run build
 
 ```
 douyin_tool/
-├── src/
-│   ├── main.js           # 入口文件
+├── src/                  # 源代码
+│   ├── controllers/      # 控制器模块
+│   ├── styles/           # 样式文件目录
+│   ├── utils/            # 工具函数目录
 │   ├── config.js         # 配置管理
-│   ├── ui_manager.js     # UI管理核心
-│   ├── modules/          # 功能模块
-│   ├── utils/            # 工具函数
-│   └── styles/           # 样式文件
+│   ├── index.js          # 项目入口文件
+│   ├── main.js           # 主程序逻辑
+│   └── ui_manager.js     # UI管理器
 ├── build/                # 构建脚本
 ├── dist/                 # 构建产物
-└── docs/                 # 详细文档
+├── docs/                 # 详细文档
+├── openspec/             # 项目规范文档
+├── .trae/                # 项目配置目录
+├── build.js              # 构建脚本
+├── package.json          # 项目配置
+├── README.md             # 项目说明文档
+├── CHANGELOG.md          # 变更日志
+└── LICENSE               # 许可证文件
 ```
 
 ## 详细文档
