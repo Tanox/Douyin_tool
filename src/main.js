@@ -132,6 +132,7 @@ function init() {
   
   // 初始化UI管理器
   uiManager = new UIManager(config);
+  uiManager.init();
   
   // 初始化主题管理器
   themeManager.init(config.theme);

@@ -1,4 +1,4 @@
-// 配置管理模块 v1.1.0 - 负责处理配置的加载、保存和默认设置
+// 配置管理模块 v1.1.1 - 负责处理配置的加载、保存和默认设置
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
 import logger from './utils/logger.js';
@@ -11,7 +11,7 @@ const configStorage = new NamespacedStorage('douyin_tool_config');
 const CONFIG_KEY = 'main';
 
 // 配置版本，用于配置迁移
-const CONFIG_VERSION = '1.1.0';
+const CONFIG_VERSION = '1.1.1';
 
 /**
  * 默认配置

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音Web端界面UI定制工具
 // @namespace    https://github.com/sutchan
-// @version      1.1.0
+// @version      1.1.1
 // @description  自定义抖音Web端界面，隐藏不需要的UI元素，提升观看体验
 // @author       Sut (@sutchan)
 // @match        https://www.douyin.com/*
@@ -18,7 +18,7 @@
 // @downloadURL
 // ==/UserScript==
 
-// src/config.js v1.1.0
+// 配置管理模块 v1.1.1 - 负责处理配置的加载、保存和默认设置
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
 import logger from './utils/logger.js';
@@ -31,7 +31,7 @@ const configStorage = new NamespacedStorage('douyin_tool_config');
 const CONFIG_KEY = 'main';
 
 // 配置版本，用于配置迁移
-const CONFIG_VERSION = '1.1.0';
+const CONFIG_VERSION = '1.1.1';
 
 /**
  * 默认配置
@@ -3965,7 +3965,7 @@ const themeManager = new ThemeManager();
 export { ThemeManager };
 export default themeManager;
 
-// src/ui_manager.js v1.1.0
+// src/ui_manager.js v1.1.1
 
 import {
   debounce,
@@ -6515,6 +6515,7 @@ function init() {
   
   // 初始化UI管理器
   uiManager = new UIManager(config);
+  uiManager.init();
   
   // 初始化主题管理器
   themeManager.init(config.theme);
