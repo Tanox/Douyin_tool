@@ -1,10 +1,4 @@
-/**
- * src/config.js
- * 配置管理模块
- * 负责处理配置的加载、保存和默认设置
- * 版本：1.1.0
- * 更新日期：2026-04-27
- */
+// src/config.js v1.1.0
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
 import logger from './utils/logger.js';

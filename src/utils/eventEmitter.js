@@ -1,7 +1,4 @@
-/**
- * 事件总线模块
- * 实现模块间通信的事件发布订阅模式
- */
+// src/utils/eventEmitter.js
 
 import logger from './logger.js';
 

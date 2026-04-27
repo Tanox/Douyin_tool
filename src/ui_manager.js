@@ -1,10 +1,4 @@
-/**
- * src/ui_manager.js
- * UI管理器模块
- * 负责处理界面定制、设置面板和用户界面交互
- * 版本：1.0.149
- * 更新日期：2026-01-09 18:35
- */
+// src/ui_manager.js v1.1.0
 
 import {
   debounce,

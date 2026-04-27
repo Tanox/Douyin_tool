@@ -254,7 +254,7 @@
 
 ```javascript
 {
-  version: '1.4.0',
+  version: '1.1.0',
   theme: 'light',
   videoUI: {
     showLikeButton: true,

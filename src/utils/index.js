@@ -1,7 +1,4 @@
-/**
- * 工具模块入口
- * 导出所有工具函数和类，提供统一的访问接口
- */
+// src/utils/index.js
 
 // DOM操作工具
 export * from './dom.js';

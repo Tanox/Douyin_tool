@@ -1,7 +1,4 @@
-/**
- * 自动执行控制器模块
- * 负责自动检测和点击界面中的继续/运行按钮，维持任务的持续执行
- */
+// src/utils/autoExecutor.js
 
 import { debounce, throttle, getElement, getElements, findElementsByClassPattern, findElementsByStructure } from './dom.js';
 import logger from './logger.js';

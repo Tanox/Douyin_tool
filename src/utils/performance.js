@@ -1,7 +1,4 @@
-/**
- * 性能监控工具模块
- * 提供性能监控、指标收集、帧率监控等功能
- */
+// src/utils/performance.js
 
 import logger from './logger.js';
 

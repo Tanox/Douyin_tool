@@ -1,7 +1,4 @@
-/**
- * DOM操作工具模块
- * 提供丰富的DOM操作功能，支持界面元素查找、操作和监听
- */
+// src/utils/dom.js
 
 import logger from './logger.js';
 

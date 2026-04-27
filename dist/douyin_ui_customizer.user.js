@@ -18,13 +18,7 @@
 // @downloadURL
 // ==/UserScript==
 
-/**
- * src/config.js
- * 配置管理模块
- * 负责处理配置的加载、保存和默认设置
- * 版本：1.1.0
- * 更新日期：2026-04-27
- */
+// src/config.js v1.1.0
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
 import logger from './utils/logger.js';
@@ -483,10 +477,7 @@ export default {
 logger.info('[抖音工具] 配置管理器已初始化');
 eventEmitter.emit('config.initialized', { config: currentConfig });
 
-/**
- * 工具模块入口
- * 导出所有工具函数和类，提供统一的访问接口
- */
+// src/utils/index.js
 
 // DOM操作工具
 export * from './dom.js';
@@ -563,10 +554,7 @@ export const utils = {
 
 export default utils;
 
-/**
- * DOM操作工具模块
- * 提供丰富的DOM操作功能，支持界面元素查找、操作和监听
- */
+// src/utils/dom.js
 
 import logger from './logger.js';
 
@@ -1031,10 +1019,7 @@ export function clearDomCache() {
   logger.info('DOM缓存已清理');
 }
 
-/**
- * 日志记录工具模块
- * 提供统一的日志记录功能，支持不同级别的日志输出和配置
- */
+// src/utils/logger.js
 
 class Logger {
   /**
@@ -1202,10 +1187,7 @@ const defaultLogger = new Logger();
 export { Logger };
 export default defaultLogger;
 
-/**
- * 存储工具模块
- * 提供丰富的数据存储功能，支持嵌套数据、过期时间和批量操作
- */
+// src/utils/storage.js
 
 import logger from './logger.js';
 
@@ -1555,10 +1537,7 @@ export class NamespacedStorage {
   }
 }
 
-/**
- * 事件总线模块
- * 实现模块间通信的事件发布订阅模式
- */
+// src/utils/eventEmitter.js
 
 import logger from './logger.js';
 
@@ -1788,10 +1767,7 @@ const defaultEventEmitter = new EventEmitter();
 export { EventEmitter };
 export default defaultEventEmitter;
 
-/**
- * 自动执行控制器模块
- * 负责自动检测和点击界面中的继续/运行按钮，维持任务的持续执行
- */
+// src/utils/autoExecutor.js
 
 import { debounce, throttle, getElement, getElements, findElementsByClassPattern, findElementsByStructure } from './dom.js';
 import logger from './logger.js';
@@ -2466,10 +2442,7 @@ class AutoExecutor {
 
 export default new AutoExecutor();
 
-/**
- * 性能监控工具模块
- * 提供性能监控、指标收集、帧率监控等功能
- */
+// src/utils/performance.js
 
 import logger from './logger.js';
 
@@ -2771,10 +2744,7 @@ const defaultPerformanceMonitor = new PerformanceMonitor();
 export { PerformanceMonitor };
 export default defaultPerformanceMonitor;
 
-/**
- * 元素控制器模块
- * 提供对页面DOM元素的精确控制功能，支持显示/隐藏、样式修改和状态管理
- */
+// src/controllers/elementController.js
 
 import { logger } from '../utils/logger.js';
 import { getElement, getElements } from '../utils/dom.js';
@@ -3174,10 +3144,7 @@ const elementController = new ElementController();
 export { ElementController };
 export default elementController;
 
-/**
- * 布局控制器模块
- * 提供页面布局的定制和管理功能，支持多种预定义布局和自定义布局配置
- */
+// src/controllers/layoutController.js
 
 import { logger } from '../utils/logger.js';
 import { getElement, getElements, createElement } from '../utils/dom.js';
@@ -3559,10 +3526,7 @@ const layoutController = new LayoutController();
 export { LayoutController };
 export default layoutController;
 
-/**
- * 样式模块入口
- * 导出所有样式相关功能，包括主题切换和自定义样式
- */
+// src/styles/index.js
 
 // 主题切换模块
 export { ThemeManager } from './theme.js';
@@ -3579,10 +3543,7 @@ export const styles = {
 
 export default styles;
 
-/**
- * 主题切换模块
- * 管理不同主题的样式定义和切换逻辑
- */
+// src/styles/theme.js
 
 import logger from '../utils/logger.js';
 import { injectStyle } from '../utils/dom.js';
@@ -4004,13 +3965,7 @@ const themeManager = new ThemeManager();
 export { ThemeManager };
 export default themeManager;
 
-/**
- * src/ui_manager.js
- * UI管理器模块
- * 负责处理界面定制、设置面板和用户界面交互
- * 版本：1.0.149
- * 更新日期：2026-01-09 18:35
- */
+// src/ui_manager.js v1.1.0
 
 import {
   debounce,

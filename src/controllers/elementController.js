@@ -1,7 +1,4 @@
-/**
- * 元素控制器模块
- * 提供对页面DOM元素的精确控制功能，支持显示/隐藏、样式修改和状态管理
- */
+// src/controllers/elementController.js
 
 import { logger } from '../utils/logger.js';
 import { getElement, getElements } from '../utils/dom.js';

@@ -1,7 +1,4 @@
-/**
- * 样式模块入口
- * 导出所有样式相关功能，包括主题切换和自定义样式
- */
+// src/styles/index.js
 
 // 主题切换模块
 export { ThemeManager } from './theme.js';

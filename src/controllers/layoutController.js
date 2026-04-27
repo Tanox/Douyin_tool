@@ -1,7 +1,4 @@
-/**
- * 布局控制器模块
- * 提供页面布局的定制和管理功能，支持多种预定义布局和自定义布局配置
- */
+// src/controllers/layoutController.js
 
 import { logger } from '../utils/logger.js';
 import { getElement, getElements, createElement } from '../utils/dom.js';

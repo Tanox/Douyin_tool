@@ -1,7 +1,4 @@
-/**
- * 主题切换模块
- * 管理不同主题的样式定义和切换逻辑
- */
+// src/styles/theme.js
 
 import logger from '../utils/logger.js';
 import { injectStyle } from '../utils/dom.js';

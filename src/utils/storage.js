@@ -1,7 +1,4 @@
-/**
- * 存储工具模块
- * 提供丰富的数据存储功能，支持嵌套数据、过期时间和批量操作
- */
+// src/utils/storage.js
 
 import logger from './logger.js';
 
