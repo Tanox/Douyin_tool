@@ -78,7 +78,7 @@ async function initializeApp() {
       },
 
       // 版本信息
-      version: '1.0.149'
+      version: '1.0.151'
     };
 
     logger.info('全局API导出完成');

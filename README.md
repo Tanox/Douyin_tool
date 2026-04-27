@@ -1,13 +1,15 @@
----
-version: 1.0.149
-last_updated: 2024-07-10
+***
+
+version: 1.0.151
+last\_updated: 2024-07-10
 author: Sut
 changelog: 修复项目源代码中的导入错误、日志使用错误和缩进问题，确保代码规范一致性
----
+----------------------------------------------
 
 # 抖音Web端界面UI定制工具
 
 ## 项目简介
+
 抖音Web端界面UI定制工具是一款专注于提升抖音Web端浏览体验的浏览器扩展/用户脚本工具。它允许用户根据个人喜好自定义抖音Web界面的视觉效果、布局结构和交互方式，让您的抖音浏览体验更加个性化和舒适。
 
 本工具采用模块化设计，低侵入性实现，不修改页面核心结构，仅通过DOM操作和CSS注入实现界面定制，保证了与抖音官方功能的最大兼容性。
@@ -15,6 +17,7 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 ## 功能特性
 
 ### 短视频界面定制
+
 - 精确控制短视频播放器界面元素的显示与隐藏
 - 自定义视频播放控制栏样式和行为
 - 智能调整视频显示区域大小，优化观看体验
@@ -24,6 +27,7 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 - 自定义背景色和主题
 
 ### 直播间界面定制
+
 - 隐藏/显示礼物动画和特效（增强版，支持隐藏所有礼物相关元素）
 - 自定义弹幕样式（字体大小、颜色、透明度、速度）
 - 智能控制聊天区域、礼物面板等辅助功能的显示
@@ -33,6 +37,7 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 - 屏蔽特定用户评论或礼物通知
 
 ### 通用功能
+
 - 设置面板拖拽功能（支持自由拖动调整位置）
 - 界面元素拖拽重排
 - 专业级主题切换系统（支持浅色/深色模式）
@@ -45,6 +50,7 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 - 性能优化设置，减少资源占用
 
 ### 技术优势
+
 - 模块化架构设计，扩展性强
 - 高效的DOM操作，性能卓越
 - 完善的错误处理和日志系统
@@ -54,14 +60,15 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 ## 安装方法
 
 ### 方法一：通过Tampermonkey官方页面一键导入
+
 1. 确保已安装油猴浏览器扩展：
    - Chrome/Edge: [Tampermonkey](https://www.tampermonkey.net/)
    - Firefox: [Greasemonkey](https://addons.mozilla.org/zh-CN/firefox/addon/greasemonkey/)
-2. 点击以下按钮：
-   <a href="https://www.tampermonkey.net/script_installation.php#url=https://github.com/SutChan/douyin_tool/raw/main/dist/douyin_ui_customizer.user.js" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 5px; margin: 10px 0; font-weight: bold;">🔄 一键安装脚本 🔄</a>
+2. 点击以下按钮： <a href="https://www.tampermonkey.net/script_installation.php#url=https://github.com/SutChan/douyin_tool/raw/main/dist/douyin_ui_customizer.user.js" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-align: center; text-decoration: none; font-size: 16px; border-radius: 5px; margin: 10px 0; font-weight: bold;">🔄 一键安装脚本 🔄</a>
 3. 油猴扩展会自动弹出安装确认窗口，点击安装即可
 
 ### 方法二：本地一键导入（适合本地开发）
+
 1. 确保已安装油猴浏览器扩展：
    - Chrome/Edge: [Tampermonkey](https://www.tampermonkey.net/)
    - Firefox: [Greasemonkey](https://addons.mozilla.org/zh-CN/firefox/addon/greasemonkey/)
@@ -71,12 +78,14 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 5. 油猴扩展会自动弹出安装确认窗口，点击安装即可
 
 ### 方法三：本地构建（推荐）
+
 1. 克隆项目：`git clone https://github.com/SutChan/douyin_tool.git`
 2. 安装依赖：`npm install`
 3. 构建脚本：`npm run build`
 4. 在油猴中安装生成的脚本：打开`dist/douyin_ui_customizer.user.js`文件并复制内容，然后在油猴扩展中创建新脚本并粘贴
 
 ### 方法四：直接使用
+
 1. 安装油猴浏览器扩展：
    - Chrome/Edge: [Tampermonkey](https://www.tampermonkey.net/)
    - Firefox: [Greasemonkey](https://addons.mozilla.org/zh-CN/firefox/addon/greasemonkey/)
@@ -95,13 +104,16 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 ### 使用技巧
 
 #### 礼物隐藏功能
+
 要完全隐藏直播间中的礼物内容：
+
 1. 进入设置面板的「直播间设置」标签页
 2. 取消勾选「显示礼物动画」选项
 3. 点击保存按钮
-此设置会隐藏所有礼物相关元素，包括礼物动画、礼物区、礼物按钮等，提供更干净的观看体验。
+   此设置会隐藏所有礼物相关元素，包括礼物动画、礼物区、礼物按钮等，提供更干净的观看体验。
 
 #### 配置管理
+
 - 使用「导出配置」按钮保存您的个性化设置
 - 通过「导入配置」按钮在不同浏览器或设备间恢复设置
 - 如遇界面异常，可点击「重置」按钮恢复默认配置
@@ -117,48 +129,45 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 ## 优化建议
 
 ### 性能优化
+
 1. **资源加载优化**
    - 实现按需加载模块机制，仅在需要时初始化相关功能
    - 优化DOM选择器，减少不必要的元素查询
    - 使用事件委托替代多个事件监听器
-
 2. **内存管理**
    - 实现自动清理不再使用的引用和监听器
    - 优化配置对象结构，减少冗余数据
    - 使用WeakMap存储临时数据，避免内存泄漏
-
 3. **渲染性能**
    - 批量执行DOM操作，减少重绘和回流
    - 实现虚拟滚动机制处理长列表
    - 使用requestAnimationFrame优化动画效果
 
 ### 用户体验改进
+
 1. **交互设计优化**
    - 实现设置项的实时预览功能
    - 添加分类标签和搜索功能，方便快速定位设置项
    - 优化设置面板的响应式布局，适应不同屏幕尺寸
-
 2. **功能增强**
    - 添加更多预设配置模板，一键应用常用设置
    - 实现配置版本历史和回滚功能
    - 添加社区分享功能，允许用户分享和导入自定义配置
-
 3. **无障碍支持**
    - 优化键盘导航和焦点管理
    - 添加屏幕阅读器支持
    - 确保颜色对比度符合无障碍标准
 
 ### 技术架构升级
+
 1. **代码重构**
    - 引入TypeScript提升代码可维护性
    - 实现更完善的单元测试和集成测试
    - 重构为组件化架构，提高代码复用率
-
 2. **功能模块化**
    - 将现有功能拆分为更小的独立模块
    - 实现插件系统，支持第三方功能扩展
    - 建立完善的API文档和开发规范
-
 3. **安全性增强**
    - 实现更严格的输入验证和XSS防护
    - 优化数据存储加密机制
@@ -167,12 +176,14 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 ## 未来展望
 
 ### 近期规划
+
 - 实现多语言支持，扩展国际用户群体
 - 开发浏览器扩展版本，提供更原生的使用体验
 - 增强与抖音网页版的兼容性，提高稳定性
 - 添加更多定制选项，满足用户多样化需求
 
 ### 中长期发展
+
 - 开发云同步功能，实现配置的跨设备无缝同步
 - 建立用户社区，促进配置分享和交流
 - 开发数据分析功能，为用户提供个性化推荐
@@ -182,6 +193,7 @@ changelog: 修复项目源代码中的导入错误、日志使用错误和缩进
 ## 自定义开发
 
 ### 项目结构
+
 ```
 douyin_tool/
 ├── src/                    # 源代码目录
@@ -214,20 +226,24 @@ douyin_tool/
 ### 开发说明
 
 #### 自动版本号递增
+
 项目构建脚本已配置为自动递增最小版本号（patch version）。每次运行构建命令时，`package.json`中的版本号最后一位会自动加1，确保每次构建都有唯一的版本标识。
 
 #### 构建过程
+
 1. 安装依赖：`npm install`
 2. 构建脚本：`npm run build`
 3. 构建完成后，会在`dist`目录生成更新后的脚本文件
 
 #### 项目特点
+
 - 模块化设计，各功能组件独立分离
 - 完善的错误处理和兼容性处理
 - 自动化的版本管理
 - 清晰的代码注释和文档
 
 ### 开发步骤
+
 1. 克隆项目：`git clone https://github.com/SutChan/douyin_tool.git`
 2. 安装依赖：`npm install`
 3. 修改源代码
@@ -235,6 +251,7 @@ douyin_tool/
 5. 测试脚本：在油猴中安装`dist/douyin_ui_customizer.user.js`
 
 ### 详细文档
+
 更多详细文档请查看项目的[docs目录](docs/01-文档指南/README.md)，包括：
 
 - [安装指南](docs/03-安装指南/README.md) - 详细的安装步骤和方法说明
@@ -245,9 +262,11 @@ douyin_tool/
 - [文档版本注册表](docs/DOCUMENT_VERSION_REGISTRY.md) - 文档版本管理信息
 
 ## 许可证
+
 MIT
 
 ## 作者
+
 SutChan
 
 ## 更新日志
@@ -255,8 +274,10 @@ SutChan
 详细更新记录请查看[更新日志](docs/CHANGELOG.md)文件。
 
 ### 最新版本 1.1 (2024-06-15)
+
 - 统一项目文档编码为UTF-8无BOM，换行符为Unix LF
 - 修复文档中的乱码问题
 - 更新并规范化所有文档结构
 - 新增文档规范和术语表
 - 完善API文档和功能说明文档
+

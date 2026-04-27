@@ -35,6 +35,5 @@ coverage/
 *.temp
 .cache/
 /docs
-/docs
 vite.config.js
 fix_advanced.js

@@ -1,12 +1,10 @@
-const { build } = require('vite');
 const fs = require('fs');
 const path = require('path');
 
 const CONFIG = {
   distDir: 'dist',
   srcDir: 'src',
-  packageFile: 'package.json',
-  viteConfig: 'vite.config.js'
+  packageFile: 'package.json'
 };
 
 function readJson(filePath) {
@@ -42,20 +40,81 @@ function bumpVersion(version, type) {
   return `${v.major}.${v.minor}.${v.patch}`;
 }
 
-async function runBuild() {
+function readFile(filePath) {
+  return fs.readFileSync(path.resolve(filePath), 'utf-8');
+}
+
+function writeFile(filePath, content) {
+  fs.writeFileSync(path.resolve(filePath), content, 'utf-8');
+}
+
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function buildUserScript() {
   try {
     const pkg = readJson(CONFIG.packageFile);
-    const newVersion = pkg.version;
-    console.log(`Starting build v${newVersion}...`);
+    const version = pkg.version;
+    console.log(`Building user script v${version}...`);
 
-    const viteConfigPath = path.resolve(CONFIG.viteConfig);
-    if (!fs.existsSync(viteConfigPath)) {
-      throw new Error(`Vite config not found: ${CONFIG.viteConfig}`);
-    }
+    const metadata = `// ==UserScript==
+// @name         抖音Web端界面UI定制工具
+// @namespace    https://github.com/sutchan
+// @version      ${version}
+// @description  自定义抖音Web端界面，隐藏不需要的UI元素，提升观看体验
+// @author       Sut (@sutchan)
+// @match        https://www.douyin.com/*
+// @match        https://v.douyin.com/*
+// @grant        GM_addStyle
+// @grant        GM_registerMenuCommand
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_addValueChangeListener
+// @grant        GM_removeValueChangeListener
+// @run-at       document-end
+// @icon         https://www.douyin.com/favicon.ico
+// @updateURL
+// @downloadURL
+// ==/UserScript==
 
-    await build({ configFile: viteConfigPath, mode: 'production' });
+`;
 
-    console.log(`Build completed: v${newVersion}`);
+    const files = [
+      'src/config.js',
+      'src/utils/index.js',
+      'src/utils/dom.js',
+      'src/utils/logger.js',
+      'src/utils/storage.js',
+      'src/utils/eventEmitter.js',
+      'src/utils/autoExecutor.js',
+      'src/utils/performance.js',
+      'src/controllers/elementController.js',
+      'src/controllers/layoutController.js',
+      'src/styles/index.js',
+      'src/styles/theme.js',
+      'src/ui_manager.js',
+      'src/main.js'
+    ];
+
+    let scriptContent = metadata;
+    files.forEach(file => {
+      if (fs.existsSync(path.resolve(file))) {
+        scriptContent += readFile(file) + '\n\n';
+      } else {
+        console.warn(`File not found: ${file}`);
+      }
+    });
+
+    const distDir = path.resolve(CONFIG.distDir);
+    ensureDir(distDir);
+
+    const outputFile = path.join(distDir, 'douyin_ui_customizer.user.js');
+    writeFile(outputFile, scriptContent);
+
+    console.log(`Build completed: ${outputFile}`);
   } catch (error) {
     console.error('Build failed:', error.message);
     process.exit(1);
@@ -84,7 +143,7 @@ function main() {
     console.log(`Version: ${newVersion}`);
   }
 
-  runBuild();
+  buildUserScript();
 }
 
 main();
