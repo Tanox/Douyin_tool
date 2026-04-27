@@ -1230,6 +1230,19 @@ class UIManager {
   }
 
   /**
+   * 保存配置到localStorage
+   * @param {Object} config - 配置对象
+   */
+  saveToLocalStorage(config) {
+    try {
+      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(config));
+      logger.info('配置已保存到localStorage');
+    } catch (error) {
+      logger.error('保存到localStorage失败:', error);
+    }
+  }
+
+  /**
    * 保存配置
    */
   saveConfig() {
@@ -1242,12 +1255,12 @@ class UIManager {
       }).catch(error => {
         logger.error('导入配置管理模块失败:', error);
         // 降级使用localStorage
-        localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(this.config));
+        this.saveToLocalStorage(this.config);
       });
     } catch (error) {
       logger.error('保存配置失败:', error);
       // 降级使用localStorage
-      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(this.config));
+      this.saveToLocalStorage(this.config);
     }
   }
 
@@ -1808,12 +1821,60 @@ class UIManager {
       // 收集自定义脚本
       const scriptItems = panel.querySelectorAll('#custom-scripts-list .script-item input');
       const customScripts = [];
+      let hasScripts = false;
+      
       scriptItems.forEach(input => {
         const value = input.value.trim();
         if (value) {
           customScripts.push(value);
+          hasScripts = true;
         }
       });
+      
+      // 添加自定义脚本安全检查
+      if (hasScripts) {
+        // 显示安全警告对话框
+        const confirmed = confirm('警告：自定义脚本可能会带来安全风险，包括XSS攻击和数据泄露。\n\n请确保您只添加来自可信来源的脚本。\n\n是否继续保存？');
+        
+        if (!confirmed) {
+          return false;
+        }
+        
+        // 对脚本内容进行基本安全检查
+        for (const script of customScripts) {
+          // 检查危险函数
+          if (script.includes('eval(') || script.includes('Function(') || script.includes('innerHTML') || 
+              script.includes('document.write') || script.includes('execScript')) {
+            const scriptConfirmed = confirm('警告：检测到可能的危险代码（如eval、innerHTML等）。\n\n是否确认添加此脚本？');
+            if (!scriptConfirmed) {
+              return false;
+            }
+          }
+          
+          // 检查脚本URL白名单
+          if (script.startsWith('http://') || script.startsWith('https://')) {
+            // 简单的白名单检查，只允许常见的CDN和可信域名
+            const allowedDomains = [
+              'cdnjs.cloudflare.com',
+              'cdn.jsdelivr.net',
+              'unpkg.com',
+              'jsdelivr.net',
+              'cdnjs.com'
+            ];
+            
+            const url = new URL(script);
+            const domain = url.hostname;
+            
+            if (!allowedDomains.some(allowedDomain => domain.includes(allowedDomain))) {
+              const urlConfirmed = confirm(`警告：脚本URL来自非白名单域名 (${domain})。\n\n是否确认添加此脚本？`);
+              if (!urlConfirmed) {
+                return false;
+              }
+            }
+          }
+        }
+      }
+      
       this.config.advanced.customScripts = customScripts;
 
       // 验证配置

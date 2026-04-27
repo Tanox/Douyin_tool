@@ -5,6 +5,36 @@
 
 import logger from './logger.js';
 
+// DOM查询缓存
+const domCache = new Map();
+const cacheExpiry = 5000; // 缓存过期时间（毫秒）
+
+/**
+ * 生成缓存键
+ * @param {string|RegExp} selector - 选择器或正则表达式
+ * @param {HTMLElement} parent - 父元素
+ * @returns {string} 缓存键
+ */
+function generateCacheKey(selector, parent = document) {
+  const selectorStr = typeof selector === 'string' ? selector : selector.toString();
+  const parentStr = parent === document ? 'document' : parent.id || parent.className || parent.tagName;
+  return `${selectorStr}_${parentStr}`;
+}
+
+/**
+ * 清理过期缓存
+ */
+function cleanupCache() {
+  const now = Date.now();
+  for (const [key, { timestamp }] of domCache.entries()) {
+    if (now - timestamp > cacheExpiry) {
+      domCache.delete(key);
+    }
+  }
+}
+
+// 定期清理缓存
+setInterval(cleanupCache, cacheExpiry * 2);
 
 /**
  * 防抖函数
@@ -49,7 +79,23 @@ export function throttle(func, limit) {
  */
 export function getElement(selector, parent = document) {
   try {
-    return parent.querySelector(selector);
+    const cacheKey = generateCacheKey(selector, parent);
+    
+    // 检查缓存
+    if (domCache.has(cacheKey)) {
+      const { element } = domCache.get(cacheKey);
+      return element;
+    }
+    
+    const element = parent.querySelector(selector);
+    
+    // 存入缓存
+    domCache.set(cacheKey, {
+      element,
+      timestamp: Date.now()
+    });
+    
+    return element;
   } catch (error) {
     logger.error(`获取元素失败 (${selector}):`, error);
     return null;
@@ -64,7 +110,23 @@ export function getElement(selector, parent = document) {
  */
 export function getElements(selector, parent = document) {
   try {
-    return Array.from(parent.querySelectorAll(selector));
+    const cacheKey = generateCacheKey(selector, parent);
+    
+    // 检查缓存
+    if (domCache.has(cacheKey)) {
+      const { elements } = domCache.get(cacheKey);
+      return elements;
+    }
+    
+    const elements = Array.from(parent.querySelectorAll(selector));
+    
+    // 存入缓存
+    domCache.set(cacheKey, {
+      elements,
+      timestamp: Date.now()
+    });
+    
+    return elements;
   } catch (error) {
     logger.error(`获取多个元素失败 (${selector}):`, error);
     return [];
@@ -78,9 +140,37 @@ export function getElements(selector, parent = document) {
  * @returns {HTMLElement[]} 匹配的元素数组
  */
 export function findElementsByClassPattern(pattern, parent = document) {
-  const elements = [];
   try {
-    // 获取所有可能的元素进行筛选
+    const cacheKey = generateCacheKey(pattern, parent);
+    
+    // 检查缓存
+    if (domCache.has(cacheKey)) {
+      const { elements } = domCache.get(cacheKey);
+      return elements;
+    }
+    
+    const elements = [];
+    
+    // 尝试使用CSS选择器（如果模式简单）
+    const patternStr = pattern.toString().replace(/^\/|\/$/g, '');
+    if (!patternStr.includes('|') && !patternStr.includes('*') && !patternStr.includes('+') && !patternStr.includes('?')) {
+      try {
+        const selector = `.${patternStr}`;
+        const cssElements = getElements(selector, parent);
+        if (cssElements.length > 0) {
+          // 存入缓存
+          domCache.set(cacheKey, {
+            elements: cssElements,
+            timestamp: Date.now()
+          });
+          return cssElements;
+        }
+      } catch (e) {
+        // CSS选择器失败，回退到原始方法
+      }
+    }
+    
+    // 回退到原始方法
     const allElements = parent.getElementsByTagName('*');
     for (let i = 0; i < allElements.length; i++) {
       const element = allElements[i];
@@ -88,10 +178,18 @@ export function findElementsByClassPattern(pattern, parent = document) {
         elements.push(element);
       }
     }
+    
+    // 存入缓存
+    domCache.set(cacheKey, {
+      elements,
+      timestamp: Date.now()
+    });
+    
+    return elements;
   } catch (error) {
     logger.error('通过类名模式查找元素失败:', error);
+    return [];
   }
-  return elements;
 }
 
 /**
@@ -101,8 +199,16 @@ export function findElementsByClassPattern(pattern, parent = document) {
  * @returns {HTMLElement[]} 匹配的元素数组
  */
 export function findElementsByStructure(options, parent = document) {
-  const result = [];
   try {
+    const cacheKey = generateCacheKey(JSON.stringify(options), parent);
+    
+    // 检查缓存
+    if (domCache.has(cacheKey)) {
+      const { elements } = domCache.get(cacheKey);
+      return elements;
+    }
+    
+    const result = [];
     const candidates = options.tagName 
       ? parent.getElementsByTagName(options.tagName)
       : parent.getElementsByTagName('*');
@@ -147,10 +253,33 @@ export function findElementsByStructure(options, parent = document) {
         result.push(candidate);
       }
     }
+    
+    // 存入缓存
+    domCache.set(cacheKey, {
+      elements: result,
+      timestamp: Date.now()
+    });
+    
+    return result;
   } catch (error) {
     logger.error('通过结构查找元素失败:', error);
+    return [];
   }
-  return result;
+}
+
+/**
+ * 批量DOM更新
+ * @param {Function} callback - 包含DOM操作的回调函数
+ * @param {HTMLElement} container - 容器元素，默认为document.body
+ */
+export function batchUpdate(callback, container = document.body) {
+  try {
+    const fragment = document.createDocumentFragment();
+    callback(fragment);
+    container.appendChild(fragment);
+  } catch (error) {
+    logger.error('批量更新失败:', error);
+  }
 }
 
 /**
@@ -161,10 +290,14 @@ export function findElementsByStructure(options, parent = document) {
 export function toggleElements(elements, show) {
   try {
     const elementArray = Array.isArray(elements) ? elements : [elements];
-    elementArray.forEach(element => {
-      if (element && element.style) {
-        element.style.display = show ? '' : 'none';
-      }
+    
+    // 使用批量更新
+    batchUpdate((fragment) => {
+      elementArray.forEach(element => {
+        if (element && element.style) {
+          element.style.display = show ? '' : 'none';
+        }
+      });
     });
   } catch (error) {
     logger.error('切换元素显示状态失败:', error);
@@ -242,6 +375,26 @@ export function removeEvent(element, eventType, handler, options = {}) {
 }
 
 /**
+ * 事件委托
+ * @param {HTMLElement} parent - 父元素
+ * @param {string} eventType - 事件类型
+ * @param {string} selector - 目标元素选择器
+ * @param {Function} handler - 事件处理函数
+ */
+export function delegateEvent(parent, eventType, selector, handler) {
+  try {
+    parent.addEventListener(eventType, (e) => {
+      const target = e.target.closest(selector);
+      if (target) {
+        handler.call(target, e);
+      }
+    });
+  } catch (error) {
+    logger.error(`事件委托失败 (${eventType}):`, error);
+  }
+}
+
+/**
  * 创建新元素
  * @param {string} tagName - 标签名
  * @param {Object} attributes - 属性对象
@@ -295,4 +448,12 @@ export function injectStyle(css) {
     logger.error('注入样式失败:', error);
     return null;
   }
+}
+
+/**
+ * 清理DOM缓存
+ */
+export function clearDomCache() {
+  domCache.clear();
+  logger.info('DOM缓存已清理');
 }
