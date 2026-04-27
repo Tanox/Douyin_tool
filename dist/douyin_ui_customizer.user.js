@@ -4465,9 +4465,12 @@ class UIManager {
           </div>
           <div>
             <button class="tab-btn" data-tab="live">直播间设置</button>
-            <button class="tab-btn" data-tab="auto-executor">自动执行</button>
+            <button class="tab-btn" data-tab="advanced">高级设置</button>
           </div>
-          <button class="tab-btn" data-tab="import-export">导入导出</button>
+          <div>
+            <button class="tab-btn" data-tab="auto-executor">自动执行</button>
+            <button class="tab-btn" data-tab="import-export">导入导出</button>
+          </div>
         </div>
         
         <div class="tab-content active" id="general-tab">
@@ -4488,6 +4491,10 @@ class UIManager {
         
         <div class="tab-content" id="import-export-tab">
           ${this.createImportExportSettings()}
+        </div>
+        
+        <div class="tab-content" id="advanced-tab">
+          ${this.createAdvancedSettings()}
         </div>
       </div>
       <div class="panel-footer">
@@ -4783,31 +4790,31 @@ class UIManager {
       <div class="setting-group">
         <h3>显示元素</h3>
         <label>
-          <input type="checkbox" id="showLikeButton" ${this.config.video?.showLikeButton ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showLikeButton" ${this.config.videoUI?.showLikeButton ?? true ? 'checked' : ''} />
           显示点赞按钮
         </label>
         <label>
-          <input type="checkbox" id="showCommentButton" ${this.config.video?.showCommentButton ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showCommentButton" ${this.config.videoUI?.showCommentButton ?? true ? 'checked' : ''} />
           显示评论按钮
         </label>
         <label>
-          <input type="checkbox" id="showShareButton" ${this.config.video?.showShareButton ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showShareButton" ${this.config.videoUI?.showShareButton ?? true ? 'checked' : ''} />
           显示分享按钮
         </label>
         <label>
-          <input type="checkbox" id="showAuthorInfo" ${this.config.video?.showAuthorInfo ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showAuthorInfo" ${this.config.videoUI?.showAuthorInfo ?? true ? 'checked' : ''} />
           显示作者信息
         </label>
         <label>
-          <input type="checkbox" id="showMusicInfo" ${this.config.video?.showMusicInfo ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showMusicInfo" ${this.config.videoUI?.showMusicInfo ?? true ? 'checked' : ''} />
           显示音乐信息
         </label>
         <label>
-          <input type="checkbox" id="showVideoDesc" ${this.config.video?.showVideoDesc ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showDescription" ${this.config.videoUI?.showDescription ?? true ? 'checked' : ''} />
           显示视频描述
         </label>
         <label>
-          <input type="checkbox" id="showRecommendedVideos" ${this.config.video?.showRecommendedVideos ?? true ? 'checked' : ''} />
+          <input type="checkbox" id="showRecommendations" ${this.config.videoUI?.showRecommendations ?? true ? 'checked' : ''} />
           显示推荐视频
         </label>
       </div>
@@ -4815,20 +4822,53 @@ class UIManager {
       <div class="setting-group">
         <h3>控制栏设置</h3>
         <label>
-          <input type="checkbox" id="showProgressBar" ${this.config.video?.showProgressBar ?? true ? 'checked' : ''} />
-          显示进度条
+          <input type="checkbox" id="controlBar-show" ${this.config.videoUI?.controlBar?.show ?? true ? 'checked' : ''} />
+          显示控制栏
         </label>
         <label>
-          <input type="checkbox" id="showPlayPauseButton" ${this.config.video?.showPlayPauseButton ?? true ? 'checked' : ''} />
-          显示播放/暂停按钮
+          <input type="checkbox" id="controlBar-autoHide" ${this.config.videoUI?.controlBar?.autoHide ?? true ? 'checked' : ''} />
+          自动隐藏控制栏
         </label>
         <label>
-          <input type="checkbox" id="showVolumeControl" ${this.config.video?.showVolumeControl ?? true ? 'checked' : ''} />
-          显示音量控制
+          <select id="controlBar-position">
+            <option value="bottom" ${this.config.videoUI?.controlBar?.position === 'bottom' ? 'selected' : ''}>底部</option>
+            <option value="top" ${this.config.videoUI?.controlBar?.position === 'top' ? 'selected' : ''}>顶部</option>
+          </select>
+          控制栏位置
         </label>
         <label>
-          <input type="checkbox" id="showFullscreenButton" ${this.config.video?.showFullscreenButton ?? true ? 'checked' : ''} />
-          显示全屏按钮
+          <select id="controlBar-size">
+            <option value="small" ${this.config.videoUI?.controlBar?.size === 'small' ? 'selected' : ''}>小</option>
+            <option value="medium" ${this.config.videoUI?.controlBar?.size === 'medium' ? 'selected' : ''}>中</option>
+            <option value="large" ${this.config.videoUI?.controlBar?.size === 'large' ? 'selected' : ''}>大</option>
+          </select>
+          控制栏大小
+        </label>
+        <label>
+          <input type="range" id="controlBar-opacity" min="0.1" max="1" step="0.1" value="${this.config.videoUI?.controlBar?.opacity ?? 0.9}" />
+          控制栏透明度: <span id="controlBar-opacity-value">${(this.config.videoUI?.controlBar?.opacity ?? 0.9) * 100}%</span>
+        </label>
+      </div>
+      
+      <div class="setting-group">
+        <h3>播放设置</h3>
+        <label>
+          <select id="playback-defaultQuality">
+            <option value="auto" ${this.config.videoUI?.playback?.defaultQuality === 'auto' ? 'selected' : ''}>自动</option>
+            <option value="low" ${this.config.videoUI?.playback?.defaultQuality === 'low' ? 'selected' : ''}>低画质</option>
+            <option value="medium" ${this.config.videoUI?.playback?.defaultQuality === 'medium' ? 'selected' : ''}>中画质</option>
+            <option value="high" ${this.config.videoUI?.playback?.defaultQuality === 'high' ? 'selected' : ''}>高画质</option>
+            <option value="ultra" ${this.config.videoUI?.playback?.defaultQuality === 'ultra' ? 'selected' : ''}>超清</option>
+          </select>
+          默认画质
+        </label>
+        <label>
+          <input type="checkbox" id="playback-autoPlay" ${this.config.videoUI?.playback?.autoPlay ?? true ? 'checked' : ''} />
+          自动播放
+        </label>
+        <label>
+          <input type="checkbox" id="playback-loop" ${this.config.videoUI?.playback?.loop ?? false ? 'checked' : ''} />
+          循环播放
         </label>
       </div>
     `;
@@ -4843,36 +4883,80 @@ class UIManager {
       <div class="setting-group">
         <h3>显示元素</h3>
         <label>
-          <input type="checkbox" id="liveShowLikeButton" ${this.config.live?.showLikeButton ?? true ? 'checked' : ''} />
-          显示点赞按钮
+          <input type="checkbox" id="liveShowGifts" ${this.config.liveUI?.showGifts ?? true ? 'checked' : ''} />
+          显示礼物
         </label>
         <label>
-          <input type="checkbox" id="liveShowCommentButton" ${this.config.live?.showCommentButton ?? true ? 'checked' : ''} />
-          显示评论按钮
+          <input type="checkbox" id="liveShowDanmaku" ${this.config.liveUI?.showDanmaku ?? true ? 'checked' : ''} />
+          显示弹幕
         </label>
         <label>
-          <input type="checkbox" id="liveShowShareButton" ${this.config.live?.showShareButton ?? true ? 'checked' : ''} />
-          显示分享按钮
+          <input type="checkbox" id="liveShowRecommendations" ${this.config.liveUI?.showRecommendations ?? true ? 'checked' : ''} />
+          显示推荐
         </label>
         <label>
-          <input type="checkbox" id="liveShowAuthorInfo" ${this.config.live?.showAuthorInfo ?? true ? 'checked' : ''} />
-          显示作者信息
+          <input type="checkbox" id="liveShowAds" ${this.config.liveUI?.showAds ?? false ? 'checked' : ''} />
+          显示广告
         </label>
         <label>
-          <input type="checkbox" id="liveShowGiftButton" ${this.config.live?.showGiftButton ?? true ? 'checked' : ''} />
-          显示礼物按钮
+          <input type="checkbox" id="liveShowStats" ${this.config.liveUI?.showStats ?? true ? 'checked' : ''} />
+          显示统计信息
         </label>
       </div>
       
       <div class="setting-group">
         <h3>弹幕设置</h3>
         <label>
-          <input type="checkbox" id="showDanmu" ${this.config.live?.showDanmu ?? true ? 'checked' : ''} />
-          显示弹幕
+          <input type="range" id="danmaku-fontSize" min="12" max="36" step="1" value="${this.config.liveUI?.danmaku?.fontSize ?? 16}" />
+          弹幕字体大小: <span id="danmaku-fontSize-value">${this.config.liveUI?.danmaku?.fontSize ?? 16}px</span>
         </label>
         <label>
-          <input type="range" id="danmuOpacity" min="0" max="1" step="0.1" value="${this.config.live?.danmuOpacity ?? 1}" />
-          弹幕透明度: <span id="danmuOpacityValue">${(this.config.live?.danmuOpacity ?? 1) * 100}%</span>
+          <input type="color" id="danmaku-color" value="${this.config.liveUI?.danmaku?.color ?? '#FFFFFF'}" />
+          弹幕颜色
+        </label>
+        <label>
+          <input type="range" id="danmaku-opacity" min="0.1" max="1" step="0.1" value="${this.config.liveUI?.danmaku?.opacity ?? 0.8}" />
+          弹幕透明度: <span id="danmaku-opacity-value">${(this.config.liveUI?.danmaku?.opacity ?? 0.8) * 100}%</span>
+        </label>
+        <label>
+          <select id="danmaku-speed">
+            <option value="fast" ${this.config.liveUI?.danmaku?.speed === 'fast' ? 'selected' : ''}>快</option>
+            <option value="medium" ${this.config.liveUI?.danmaku?.speed === 'medium' ? 'selected' : ''}>中</option>
+            <option value="slow" ${this.config.liveUI?.danmaku?.speed === 'slow' ? 'selected' : ''}>慢</option>
+          </select>
+          弹幕速度
+        </label>
+        <label>
+          <select id="danmaku-position">
+            <option value="top" ${this.config.liveUI?.danmaku?.position === 'top' ? 'selected' : ''}>顶部</option>
+            <option value="middle" ${this.config.liveUI?.danmaku?.position === 'middle' ? 'selected' : ''}>中部</option>
+            <option value="bottom" ${this.config.liveUI?.danmaku?.position === 'bottom' ? 'selected' : ''}>底部</option>
+          </select>
+          弹幕位置
+        </label>
+        <label>
+          <input type="number" id="danmaku-maxLines" min="1" max="10" value="${this.config.liveUI?.danmaku?.maxLines ?? 5}" />
+          最大弹幕行数
+        </label>
+      </div>
+      
+      <div class="setting-group">
+        <h3>布局设置</h3>
+        <label>
+          <select id="live-layout">
+            <option value="default" ${this.config.liveUI?.layout === 'default' ? 'selected' : ''}>默认</option>
+            <option value="minimal" ${this.config.liveUI?.layout === 'minimal' ? 'selected' : ''}>极简</option>
+            <option value="immersive" ${this.config.liveUI?.layout === 'immersive' ? 'selected' : ''}>沉浸</option>
+          </select>
+          布局类型
+        </label>
+      </div>
+      
+      <div class="setting-group">
+        <h3>音量设置</h3>
+        <label>
+          <input type="range" id="live-volume" min="0" max="100" step="5" value="${this.config.liveUI?.volume ?? 100}" />
+          音量: <span id="live-volume-value">${this.config.liveUI?.volume ?? 100}%</span>
         </label>
       </div>
     `;
@@ -4915,7 +4999,16 @@ class UIManager {
     if (exportBtn && exportConfig) {
       exportBtn.addEventListener('click', () => {
         try {
-          exportConfig.value = JSON.stringify(this.config, null, 2);
+          // 导入配置管理模块
+          import('./config.js').then(({ default: configManager }) => {
+            // 使用配置管理模块导出配置
+            const exportedConfig = configManager.exportConfig();
+            exportConfig.value = exportedConfig;
+          }).catch(error => {
+            logger.error('导入配置管理模块失败:', error);
+            // 降级使用直接导出
+            exportConfig.value = JSON.stringify(this.config, null, 2);
+          });
         } catch (error) {
           logger.error('导出配置失败:', error);
           alert('导出配置失败');
@@ -4944,11 +5037,27 @@ class UIManager {
     if (importBtn && importConfig) {
       importBtn.addEventListener('click', () => {
         try {
-          const newConfig = JSON.parse(importConfig.value);
-          this.config = newConfig;
-          this.saveConfig();
-          alert('配置导入成功');
-          location.reload();
+          // 导入配置管理模块
+          import('./config.js').then(({ default: configManager }) => {
+            // 使用配置管理模块导入配置
+            const success = configManager.importConfig(importConfig.value);
+            if (success) {
+              // 重新加载配置
+              this.config = configManager.getConfig();
+              alert('配置导入成功');
+              location.reload();
+            } else {
+              alert('导入配置失败，请检查JSON格式');
+            }
+          }).catch(error => {
+            logger.error('导入配置管理模块失败:', error);
+            // 降级使用直接导入
+            const newConfig = JSON.parse(importConfig.value);
+            this.config = newConfig;
+            this.saveConfig();
+            alert('配置导入成功');
+            location.reload();
+          });
         } catch (error) {
           logger.error('导入配置失败:', error);
           alert('导入配置失败，请检查JSON格式');
@@ -4962,10 +5071,20 @@ class UIManager {
    */
   saveConfig() {
     try {
-      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(this.config));
-      logger.info('配置已保存');
+      // 导入配置管理模块
+      import('./config.js').then(({ default: configManager }) => {
+        // 使用配置管理模块保存配置
+        configManager.setConfig(this.config);
+        logger.info('配置已保存');
+      }).catch(error => {
+        logger.error('导入配置管理模块失败:', error);
+        // 降级使用localStorage
+        localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(this.config));
+      });
     } catch (error) {
       logger.error('保存配置失败:', error);
+      // 降级使用localStorage
+      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(this.config));
     }
   }
 
@@ -5010,19 +5129,82 @@ class UIManager {
     // 视频设置事件监听
     const videoSettings = [
       'showLikeButton', 'showCommentButton', 'showShareButton',
-      'showAuthorInfo', 'showMusicInfo', 'showVideoDesc',
-      'showRecommendedVideos', 'showProgressBar', 'showPlayPauseButton',
-      'showVolumeControl', 'showFullscreenButton'
+      'showAuthorInfo', 'showMusicInfo', 'showDescription',
+      'showRecommendations'
     ];
 
     videoSettings.forEach(setting => {
       const checkbox = this.settingsPanel.querySelector(`#${setting}`);
       if (checkbox) {
         checkbox.addEventListener('change', (e) => {
-          if (!this.config.video) {
-            this.config.video = {};
+          if (!this.config.videoUI) {
+            this.config.videoUI = {};
           }
-          this.config.video[setting] = e.target.checked;
+          this.config.videoUI[setting] = e.target.checked;
+          this.saveConfig();
+          this.applyVideoCustomizations();
+        });
+      }
+    });
+
+    // 控制栏设置事件监听
+    const controlBarSettings = [
+      'controlBar-show', 'controlBar-autoHide', 'controlBar-position',
+      'controlBar-size', 'controlBar-opacity'
+    ];
+
+    controlBarSettings.forEach(setting => {
+      const element = this.settingsPanel.querySelector(`#${setting}`);
+      if (element) {
+        element.addEventListener('change', (e) => {
+          if (!this.config.videoUI) {
+            this.config.videoUI = {};
+          }
+          if (!this.config.videoUI.controlBar) {
+            this.config.videoUI.controlBar = {};
+          }
+          
+          const controlBarSetting = setting.replace('controlBar-', '');
+          let value = e.target.value;
+          
+          if (e.target.type === 'checkbox') {
+            value = e.target.checked;
+          } else if (controlBarSetting === 'opacity') {
+            value = parseFloat(value);
+            this.settingsPanel.querySelector('#controlBar-opacity-value').textContent = `${value * 100}%`;
+          }
+          
+          this.config.videoUI.controlBar[controlBarSetting] = value;
+          this.saveConfig();
+          this.applyVideoCustomizations();
+        });
+      }
+    });
+
+    // 播放设置事件监听
+    const playbackSettings = [
+      'playback-defaultQuality', 'playback-autoPlay', 'playback-loop'
+    ];
+
+    playbackSettings.forEach(setting => {
+      const element = this.settingsPanel.querySelector(`#${setting}`);
+      if (element) {
+        element.addEventListener('change', (e) => {
+          if (!this.config.videoUI) {
+            this.config.videoUI = {};
+          }
+          if (!this.config.videoUI.playback) {
+            this.config.videoUI.playback = {};
+          }
+          
+          const playbackSetting = setting.replace('playback-', '');
+          let value = e.target.value;
+          
+          if (e.target.type === 'checkbox') {
+            value = e.target.checked;
+          }
+          
+          this.config.videoUI.playback[playbackSetting] = value;
           this.saveConfig();
           this.applyVideoCustomizations();
         });
@@ -5031,38 +5213,215 @@ class UIManager {
 
     // 直播间设置事件监听
     const liveSettings = [
-      'liveShowLikeButton', 'liveShowCommentButton', 'liveShowShareButton',
-      'liveShowAuthorInfo', 'liveShowGiftButton', 'showDanmu'
+      'liveShowGifts', 'liveShowDanmaku', 'liveShowRecommendations',
+      'liveShowAds', 'liveShowStats'
     ];
 
     liveSettings.forEach(setting => {
       const checkbox = this.settingsPanel.querySelector(`#${setting}`);
       if (checkbox) {
         checkbox.addEventListener('change', (e) => {
-          if (!this.config.live) {
-            this.config.live = {};
+          if (!this.config.liveUI) {
+            this.config.liveUI = {};
           }
-          this.config.live[setting] = e.target.checked;
+          const liveSetting = setting.replace('liveShow', 'show');
+          this.config.liveUI[liveSetting] = e.target.checked;
           this.saveConfig();
           this.applyLiveCustomizations();
         });
       }
     });
 
-    // 弹幕透明度设置
-    const danmuOpacitySlider = this.settingsPanel.querySelector('#danmuOpacity');
-    if (danmuOpacitySlider) {
-      danmuOpacitySlider.addEventListener('input', (e) => {
-        const value = parseFloat(e.target.value);
-        this.settingsPanel.querySelector('#danmuOpacityValue').textContent = `${value * 100}%`;
-        if (!this.config.live) {
-          this.config.live = {};
+    // 弹幕设置事件监听
+    const danmakuSettings = [
+      'danmaku-fontSize', 'danmaku-color', 'danmaku-opacity',
+      'danmaku-speed', 'danmaku-position', 'danmaku-maxLines'
+    ];
+
+    danmakuSettings.forEach(setting => {
+      const element = this.settingsPanel.querySelector(`#${setting}`);
+      if (element) {
+        element.addEventListener('change', (e) => {
+          if (!this.config.liveUI) {
+            this.config.liveUI = {};
+          }
+          if (!this.config.liveUI.danmaku) {
+            this.config.liveUI.danmaku = {};
+          }
+          
+          const danmakuSetting = setting.replace('danmaku-', '');
+          let value = e.target.value;
+          
+          if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') {
+            value = parseInt(value);
+            if (danmakuSetting === 'fontSize') {
+              this.settingsPanel.querySelector('#danmaku-fontSize-value').textContent = `${value}px`;
+            }
+          } else if (danmakuSetting === 'opacity') {
+            value = parseFloat(value);
+            this.settingsPanel.querySelector('#danmaku-opacity-value').textContent = `${value * 100}%`;
+          }
+          
+          this.config.liveUI.danmaku[danmakuSetting] = value;
+          this.saveConfig();
+          this.applyLiveCustomizations();
+        });
+      }
+    });
+
+    // 直播布局设置
+    const liveLayoutSelect = this.settingsPanel.querySelector('#live-layout');
+    if (liveLayoutSelect) {
+      liveLayoutSelect.addEventListener('change', (e) => {
+        if (!this.config.liveUI) {
+          this.config.liveUI = {};
         }
-        this.config.live.danmuOpacity = value;
+        this.config.liveUI.layout = e.target.value;
         this.saveConfig();
         this.applyLiveCustomizations();
       });
     }
+
+    // 直播音量设置
+    const liveVolumeSlider = this.settingsPanel.querySelector('#live-volume');
+    if (liveVolumeSlider) {
+      liveVolumeSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        this.settingsPanel.querySelector('#live-volume-value').textContent = `${value}%`;
+        if (!this.config.liveUI) {
+          this.config.liveUI = {};
+        }
+        this.config.liveUI.volume = value;
+        this.saveConfig();
+        this.applyLiveCustomizations();
+      });
+    }
+
+    // 高级设置事件监听
+    const advancedSettings = [
+      'advanced-debugMode', 'advanced-performanceMode'
+    ];
+
+    advancedSettings.forEach(setting => {
+      const checkbox = this.settingsPanel.querySelector(`#${setting}`);
+      if (checkbox) {
+        checkbox.addEventListener('change', (e) => {
+          if (!this.config.advanced) {
+            this.config.advanced = {};
+          }
+          const advancedSetting = setting.replace('advanced-', '');
+          this.config.advanced[advancedSetting] = e.target.checked;
+          this.saveConfig();
+        });
+      }
+    });
+
+    // 自定义CSS事件监听
+    const customCSS = this.settingsPanel.querySelector('#advanced-customCSS');
+    if (customCSS) {
+      customCSS.addEventListener('input', (e) => {
+        if (!this.config.advanced) {
+          this.config.advanced = {};
+        }
+        this.config.advanced.customCSS = e.target.value;
+        this.saveConfig();
+      });
+    }
+
+    // 自定义脚本事件监听
+    const addScriptBtn = this.settingsPanel.querySelector('#add-script');
+    if (addScriptBtn) {
+      addScriptBtn.addEventListener('click', () => {
+        const scriptsList = this.settingsPanel.querySelector('#custom-scripts-list');
+        if (scriptsList) {
+          const index = scriptsList.children.length;
+          const scriptItem = document.createElement('div');
+          scriptItem.className = 'script-item';
+          scriptItem.innerHTML = `
+            <input type="text" data-index="${index}" placeholder="脚本URL或代码" />
+            <button class="remove-script" data-index="${index}">删除</button>
+          `;
+          scriptsList.appendChild(scriptItem);
+          
+          // 添加删除脚本按钮事件
+          const removeBtn = scriptItem.querySelector('.remove-script');
+          if (removeBtn) {
+            removeBtn.addEventListener('click', (e) => {
+              scriptItem.remove();
+              this.saveConfig();
+            });
+          }
+          
+          // 添加输入事件
+          const input = scriptItem.querySelector('input');
+          if (input) {
+            input.addEventListener('input', () => {
+              this.saveConfig();
+            });
+          }
+        }
+      });
+    }
+
+    // 初始化删除脚本按钮事件
+    const removeScriptBtns = this.settingsPanel.querySelectorAll('.remove-script');
+    removeScriptBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const scriptItem = btn.closest('.script-item');
+        if (scriptItem) {
+          scriptItem.remove();
+          this.saveConfig();
+        }
+      });
+    });
+
+    // 初始化脚本输入事件
+    const scriptInputs = this.settingsPanel.querySelectorAll('#custom-scripts-list .script-item input');
+    scriptInputs.forEach(input => {
+      input.addEventListener('input', () => {
+        this.saveConfig();
+      });
+    });
+  }
+
+  /**
+   * 创建高级设置内容
+   * @returns {string} HTML字符串
+   */
+  createAdvancedSettings() {
+    return `
+      <div class="setting-group">
+        <h3>高级功能</h3>
+        <label>
+          <input type="checkbox" id="advanced-debugMode" ${this.config.advanced?.debugMode ?? false ? 'checked' : ''} />
+          启用调试模式
+        </label>
+        <label>
+          <input type="checkbox" id="advanced-performanceMode" ${this.config.advanced?.performanceMode ?? false ? 'checked' : ''} />
+          启用性能模式
+        </label>
+      </div>
+      
+      <div class="setting-group">
+        <h3>自定义CSS</h3>
+        <textarea id="advanced-customCSS" placeholder="输入自定义CSS代码" rows="5" cols="40">${this.config.advanced?.customCSS ?? ''}</textarea>
+        <small>注意：自定义CSS可能会影响页面性能</small>
+      </div>
+      
+      <div class="setting-group">
+        <h3>自定义脚本</h3>
+        <div id="custom-scripts-list">
+          ${(this.config.advanced?.customScripts ?? []).map((script, index) => `
+            <div class="script-item">
+              <input type="text" value="${script}" data-index="${index}" placeholder="脚本URL或代码" />
+              <button class="remove-script" data-index="${index}">删除</button>
+            </div>
+          `).join('')}
+        </div>
+        <button id="add-script">添加脚本</button>
+        <small>注意：自定义脚本可能会带来安全风险，请谨慎使用</small>
+      </div>
+    `;
   }
 
   /**
@@ -5100,10 +5459,234 @@ class UIManager {
   /**
    * 保存配置到本地存储
    */
-  saveSettings(panel) {
-    // 这里可以实现从面板收集配置并保存的逻辑
-    logger.info('Settings saved from panel');
-    this.applyAllCustomizations();
+  async saveSettings(panel) {
+    try {
+      // 收集通用设置
+      const themeRadios = panel.querySelectorAll('input[type="radio"][name="theme"]');
+      for (const radio of themeRadios) {
+        if (radio.checked) {
+          this.config.theme = radio.value;
+          break;
+        }
+      }
+
+      // 收集通用设置
+      const generalSettings = [
+        'autoPlay', 'autoScroll', 'keyboardShortcuts', 'notifications'
+      ];
+
+      generalSettings.forEach(setting => {
+        const checkbox = panel.querySelector(`#${setting}`);
+        if (checkbox) {
+          if (!this.config.general) {
+            this.config.general = {};
+          }
+          this.config.general[setting] = checkbox.checked;
+        }
+      });
+
+      // 收集视频设置
+      const videoSettings = [
+        'showLikeButton', 'showCommentButton', 'showShareButton',
+        'showAuthorInfo', 'showMusicInfo', 'showDescription',
+        'showRecommendations'
+      ];
+
+      videoSettings.forEach(setting => {
+        const checkbox = panel.querySelector(`#${setting}`);
+        if (checkbox) {
+          if (!this.config.videoUI) {
+            this.config.videoUI = {};
+          }
+          this.config.videoUI[setting] = checkbox.checked;
+        }
+      });
+
+      // 收集控制栏设置
+      const controlBarSettings = [
+        'controlBar-show', 'controlBar-autoHide', 'controlBar-position',
+        'controlBar-size', 'controlBar-opacity'
+      ];
+
+      controlBarSettings.forEach(setting => {
+        const element = panel.querySelector(`#${setting}`);
+        if (element) {
+          if (!this.config.videoUI) {
+            this.config.videoUI = {};
+          }
+          if (!this.config.videoUI.controlBar) {
+            this.config.videoUI.controlBar = {};
+          }
+          
+          const controlBarSetting = setting.replace('controlBar-', '');
+          let value = element.value;
+          
+          if (element.type === 'checkbox') {
+            value = element.checked;
+          } else if (controlBarSetting === 'opacity') {
+            value = parseFloat(value);
+          }
+          
+          this.config.videoUI.controlBar[controlBarSetting] = value;
+        }
+      });
+
+      // 收集播放设置
+      const playbackSettings = [
+        'playback-defaultQuality', 'playback-autoPlay', 'playback-loop'
+      ];
+
+      playbackSettings.forEach(setting => {
+        const element = panel.querySelector(`#${setting}`);
+        if (element) {
+          if (!this.config.videoUI) {
+            this.config.videoUI = {};
+          }
+          if (!this.config.videoUI.playback) {
+            this.config.videoUI.playback = {};
+          }
+          
+          const playbackSetting = setting.replace('playback-', '');
+          let value = element.value;
+          
+          if (element.type === 'checkbox') {
+            value = element.checked;
+          }
+          
+          this.config.videoUI.playback[playbackSetting] = value;
+        }
+      });
+
+      // 收集直播间设置
+      const liveSettings = [
+        'liveShowGifts', 'liveShowDanmaku', 'liveShowRecommendations',
+        'liveShowAds', 'liveShowStats'
+      ];
+
+      liveSettings.forEach(setting => {
+        const checkbox = panel.querySelector(`#${setting}`);
+        if (checkbox) {
+          if (!this.config.liveUI) {
+            this.config.liveUI = {};
+          }
+          const liveSetting = setting.replace('liveShow', 'show');
+          this.config.liveUI[liveSetting] = checkbox.checked;
+        }
+      });
+
+      // 收集弹幕设置
+      const danmakuSettings = [
+        'danmaku-fontSize', 'danmaku-color', 'danmaku-opacity',
+        'danmaku-speed', 'danmaku-position', 'danmaku-maxLines'
+      ];
+
+      danmakuSettings.forEach(setting => {
+        const element = panel.querySelector(`#${setting}`);
+        if (element) {
+          if (!this.config.liveUI) {
+            this.config.liveUI = {};
+          }
+          if (!this.config.liveUI.danmaku) {
+            this.config.liveUI.danmaku = {};
+          }
+          
+          const danmakuSetting = setting.replace('danmaku-', '');
+          let value = element.value;
+          
+          if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') {
+            value = parseInt(value);
+          } else if (danmakuSetting === 'opacity') {
+            value = parseFloat(value);
+          }
+          
+          this.config.liveUI.danmaku[danmakuSetting] = value;
+        }
+      });
+
+      // 收集直播布局设置
+      const liveLayoutSelect = panel.querySelector('#live-layout');
+      if (liveLayoutSelect) {
+        if (!this.config.liveUI) {
+          this.config.liveUI = {};
+        }
+        this.config.liveUI.layout = liveLayoutSelect.value;
+      }
+
+      // 收集直播音量设置
+      const liveVolumeSlider = panel.querySelector('#live-volume');
+      if (liveVolumeSlider) {
+        if (!this.config.liveUI) {
+          this.config.liveUI = {};
+        }
+        this.config.liveUI.volume = parseInt(liveVolumeSlider.value);
+      }
+
+      // 收集高级设置
+      const debugModeCheckbox = panel.querySelector('#advanced-debugMode');
+      const performanceModeCheckbox = panel.querySelector('#advanced-performanceMode');
+      const customCSS = panel.querySelector('#advanced-customCSS');
+      
+      if (!this.config.advanced) {
+        this.config.advanced = {};
+      }
+      
+      if (debugModeCheckbox) {
+        this.config.advanced.debugMode = debugModeCheckbox.checked;
+      }
+      
+      if (performanceModeCheckbox) {
+        this.config.advanced.performanceMode = performanceModeCheckbox.checked;
+      }
+      
+      if (customCSS) {
+        this.config.advanced.customCSS = customCSS.value;
+      }
+      
+      // 收集自定义脚本
+      const scriptItems = panel.querySelectorAll('#custom-scripts-list .script-item input');
+      const customScripts = [];
+      scriptItems.forEach(input => {
+        const value = input.value.trim();
+        if (value) {
+          customScripts.push(value);
+        }
+      });
+      this.config.advanced.customScripts = customScripts;
+
+      // 验证配置
+      let validationResult = { valid: true, issues: [] };
+      
+      try {
+        // 导入配置管理模块进行验证
+        const configModule = await import('./config.js');
+        const configManager = configModule.default;
+        validationResult = configManager.validateConfig(this.config);
+      } catch (error) {
+        logger.error('验证配置失败:', error);
+        // 降级使用基本验证
+        validationResult = this.basicValidateConfig(this.config);
+      }
+      
+      if (!validationResult.valid) {
+        // 显示验证错误
+        const errorMessage = '配置验证失败：\n' + validationResult.issues.join('\n');
+        alert(errorMessage);
+        return;
+      }
+
+      // 保存配置
+      this.saveConfig();
+      logger.info('Settings saved from panel');
+      
+      // 应用所有定制
+      this.applyAllCustomizations();
+      
+      // 显示保存成功提示
+      alert('设置保存成功！');
+    } catch (error) {
+      logger.error('保存设置失败:', error);
+      alert('保存设置失败，请重试');
+    }
   }
 
   /**
@@ -5382,6 +5965,57 @@ class UIManager {
         return `<div class="history-entry ${statusClass}">${new Date(entry.timestamp).toLocaleTimeString()} - ${entry.action} (${entry.success ? '成功' : '失败'})</div>`;
       }).join('');
     }
+  }
+
+  /**
+   * 基本配置验证
+   * @param {Object} config - 要验证的配置对象
+   * @returns {Object} 包含验证结果的对象
+   */
+  basicValidateConfig(config) {
+    const issues = [];
+
+    try {
+      // 验证主题配置
+      if (config.theme && !['light', 'dark'].includes(config.theme)) {
+        issues.push('主题配置无效，应为 light 或 dark');
+      }
+
+      // 验证布局配置
+      if (config.videoUI?.layout && !['default', 'compact', 'fullscreen'].includes(config.videoUI.layout)) {
+        issues.push('视频界面布局配置无效');
+      }
+
+      if (config.liveUI?.layout && !['default', 'minimal', 'immersive'].includes(config.liveUI.layout)) {
+        issues.push('直播间界面布局配置无效');
+      }
+
+      // 验证数值范围
+      if (config.liveUI?.danmaku?.fontSize && (config.liveUI.danmaku.fontSize < 12 || config.liveUI.danmaku.fontSize > 36)) {
+        issues.push('弹幕字体大小应在 12-36 之间');
+      }
+
+      if (config.liveUI?.danmaku?.opacity && (config.liveUI.danmaku.opacity < 0.1 || config.liveUI.danmaku.opacity > 1)) {
+        issues.push('弹幕透明度应在 0.1-1 之间');
+      }
+
+      if (config.liveUI?.volume && (config.liveUI.volume < 0 || config.liveUI.volume > 100)) {
+        issues.push('音量应在 0-100 之间');
+      }
+
+      if (config.videoUI?.controlBar?.opacity && (config.videoUI.controlBar.opacity < 0.1 || config.videoUI.controlBar.opacity > 1)) {
+        issues.push('控制栏透明度应在 0.1-1 之间');
+      }
+
+    } catch (error) {
+      logger.error('基本验证配置失败:', error);
+      issues.push('配置验证过程中发生错误');
+    }
+
+    return {
+      valid: issues.length === 0,
+      issues: issues
+    };
   }
 
   /**
