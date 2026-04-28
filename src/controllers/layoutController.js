@@ -1,7 +1,7 @@
 // src/controllers/layoutController.js
 
-import { logger } from '../utils/logger.js';
-import { getElement, getElements, createElement } from '../utils/dom.js';
+import { logger } from '../utils/logger.ts';
+import { getElement, getElements, createElement } from '../utils/dom.ts';
 import elementController from './elementController.js';
 
 // 预定义布局配置

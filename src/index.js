@@ -1,8 +1,8 @@
 // 抖音Web端界面UI定制工具 - 主入口文件
 
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
-import performanceMonitor from './utils/performance.js';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
+import performanceMonitor from './utils/performance.ts';
 import themeManager from './styles/theme.js';
 import UIManager from './ui_manager.js';
 import elementController from './controllers/elementController.js';

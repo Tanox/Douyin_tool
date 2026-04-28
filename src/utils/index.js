@@ -1,25 +1,25 @@
 // src/utils/index.js
 
 // DOM操作工具
-export * from './dom.js';
+export * from './dom.ts';
 
 // 存储工具
-export * from './storage.js';
+export * from './storage.ts';
 
 // 日志记录工具
-export { Logger } from './logger.js';
-export { default as logger } from './logger.js';
+export { Logger } from './logger.ts';
+export { default as logger } from './logger.ts';
 
 // 事件总线
-export { EventEmitter } from './eventEmitter.js';
-export { default as eventEmitter } from './eventEmitter.js';
+export { EventEmitter } from './eventEmitter.ts';
+export { default as eventEmitter } from './eventEmitter.ts';
 
 // 性能监控
-export { PerformanceMonitor } from './performance.js';
-export { default as performanceMonitor } from './performance.js';
+export { PerformanceMonitor } from './performance.ts';
+export { default as performanceMonitor } from './performance.ts';
 
 // 自动执行控制器
-export { default as autoExecutor } from './autoExecutor.js';
+export { default as autoExecutor } from './autoExecutor.ts';
 
 /**
  * 工具集合

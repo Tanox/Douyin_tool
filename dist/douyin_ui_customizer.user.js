@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音Web端界面UI定制工具
 // @namespace    https://github.com/sutchan
-// @version      2.0.0
+// @version      2.0.1
 // @description  自定义抖音Web端界面，隐藏不需要的UI元素，提升观看体验
 // @author       Sut (@sutchan)
 // @match        https://www.douyin.com/*
@@ -18,11 +18,11 @@
 // @downloadURL
 // ==/UserScript==
 
-// 配置管理模块 v2.0.0 - 负责处理配置的加载、保存和默认设置
+// 配置管理模块 v2.0.1 - 负责处理配置的加载、保存和默认设置
 
-import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
+import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.ts';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
 
 // 创建配置专用的命名空间存储
 const configStorage = new NamespacedStorage('douyin_tool_config');
@@ -31,7 +31,7 @@ const configStorage = new NamespacedStorage('douyin_tool_config');
 const CONFIG_KEY = 'main';
 
 // 配置版本，用于配置迁移
-const CONFIG_VERSION = '2.0.0';
+const CONFIG_VERSION = '2.0.1';
 
 /**
  * 默认配置
@@ -556,6 +556,7 @@ export default utils;
 
 import logger from './logger.js';
 import type { DOMCacheEntry, ElementStructure, BatchUpdateCallback } from '../types/index.js';
+import { isDOMCacheEntry } from '../types/index.js';
 
 const domCache = new Map<string, DOMCacheEntry>();
 const cacheExpiry = 5000;
@@ -611,8 +612,13 @@ export function getElement(selector: string, parent: HTMLElement | Document = do
     const cacheKey = generateCacheKey(selector, parent);
 
     if (domCache.has(cacheKey)) {
-      const { element } = domCache.get(cacheKey)!;
-      return element as HTMLElement | null;
+      const entry = domCache.get(cacheKey)!;
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.element as HTMLElement | null;
+      }
     }
 
     const element = parent.querySelector<HTMLElement>(selector);
@@ -635,7 +641,12 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return (entry as unknown as { elements: HTMLElement[] }).elements;
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.elements || [];
+      }
     }
 
     const elements = Array.from(parent.querySelectorAll<HTMLElement>(selector));
@@ -643,7 +654,7 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
     domCache.set(cacheKey, {
       elements,
       timestamp: Date.now()
-    } as unknown as DOMCacheEntry);
+    });
 
     return elements;
   } catch (error) {
@@ -658,7 +669,12 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return (entry as unknown as { elements: HTMLElement[] }).elements;
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.elements || [];
+      }
     }
 
     const elements: HTMLElement[] = [];
@@ -672,7 +688,7 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
           domCache.set(cacheKey, {
             elements: cssElements,
             timestamp: Date.now()
-          } as unknown as DOMCacheEntry);
+          });
           return cssElements;
         }
       } catch {
@@ -689,7 +705,7 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
     domCache.set(cacheKey, {
       elements,
       timestamp: Date.now()
-    } as unknown as DOMCacheEntry);
+    });
 
     return elements;
   } catch (error) {
@@ -704,7 +720,12 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return (entry as unknown as { elements: HTMLElement[] }).elements;
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.elements || [];
+      }
     }
 
     const result: HTMLElement[] = [];
@@ -754,7 +775,7 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
     domCache.set(cacheKey, {
       elements: result,
       timestamp: Date.now()
-    } as unknown as DOMCacheEntry);
+    });
 
     return result;
   } catch (error) {
@@ -1789,166 +1810,193 @@ class AutoExecutor {
 
 export default new AutoExecutor();
 
-// src/utils/performance.js
-
 import logger from './logger.js';
 
+interface PerformanceMonitorOptions {
+  enableFpsMonitor?: boolean;
+  enableMemoryMonitor?: boolean;
+  sampleInterval?: number;
+}
+
+interface FpsRecord {
+  timestamp: number;
+  value: number;
+}
+
+interface MemoryRecord {
+  timestamp: number;
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface ExecutionTimeRecord {
+  timestamp: number;
+  duration: number;
+}
+
+interface RenderTimeRecord {
+  timestamp: number;
+  duration: number;
+}
+
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+  usedPercent: number;
+}
+
+interface PerformanceMetrics {
+  fps: FpsRecord[];
+  memory: MemoryRecord[];
+  executionTimes: Record<string, ExecutionTimeRecord[]>;
+  renderTimes: RenderTimeRecord[];
+}
+
+interface PerformanceHealth {
+  isHealthy: boolean;
+  fpsHealthy: boolean;
+  memoryHealthy: boolean;
+  currentFps: number;
+  averageFps: number;
+  memoryUsage: string;
+}
+
+interface WatchResult {
+  stop: () => void;
+}
+
 class PerformanceMonitor {
-  /**
-   * 构造函数
-   * @param {Object} options - 配置选项
-   * @param {boolean} options.enableFpsMonitor - 是否启用帧率监控
-   * @param {boolean} options.enableMemoryMonitor - 是否启用内存监控
-   * @param {number} options.sampleInterval - 采样间隔(ms)
-   */
-  constructor(options = {}) {
+  private enableFpsMonitor: boolean;
+  private enableMemoryMonitor: boolean;
+  private sampleInterval: number;
+  private metrics: PerformanceMetrics;
+  private isMonitoring: boolean;
+  private fpsMonitorId: number | null;
+  private memoryMonitorId: ReturnType<typeof setInterval> | null;
+  private lastTime: number;
+  private frameCount: number;
+  private fpsHistory: number[];
+  private maxFpsHistory: number;
+
+  constructor(options: PerformanceMonitorOptions = {}) {
     this.enableFpsMonitor = options.enableFpsMonitor !== false;
     this.enableMemoryMonitor = options.enableMemoryMonitor !== false;
     this.sampleInterval = options.sampleInterval || 1000;
-    
+
     this.metrics = {
       fps: [],
       memory: [],
       executionTimes: {},
       renderTimes: []
     };
-    
+
     this.isMonitoring = false;
     this.fpsMonitorId = null;
     this.memoryMonitorId = null;
-    
+
     this.lastTime = 0;
     this.frameCount = 0;
     this.fpsHistory = [];
-    this.maxFpsHistory = 60; // 保存最近60帧的数据
+    this.maxFpsHistory = 60;
   }
 
-  /**
-   * 开始性能监控
-   */
-  startMonitoring() {
+  startMonitoring(): void {
     if (this.isMonitoring) return;
-    
+
     this.isMonitoring = true;
-    
-    // 启动帧率监控
+
     if (this.enableFpsMonitor && window.requestAnimationFrame) {
       this.lastTime = performance.now();
       this.frameCount = 0;
       this._startFpsMonitoring();
     }
-    
-    // 启动内存监控
-    if (this.enableMemoryMonitor && performance.memory) {
+
+    if (this.enableMemoryMonitor && (performance as unknown as { memory: MemoryInfo }).memory) {
       this.memoryMonitorId = setInterval(() => {
         this._collectMemoryMetrics();
       }, this.sampleInterval);
     }
   }
 
-  /**
-   * 停止性能监控
-   */
-  stopMonitoring() {
+  stopMonitoring(): void {
     if (!this.isMonitoring) return;
-    
+
     this.isMonitoring = false;
-    
-    // 停止帧率监控
+
     if (this.fpsMonitorId) {
       cancelAnimationFrame(this.fpsMonitorId);
       this.fpsMonitorId = null;
     }
-    
-    // 停止内存监控
+
     if (this.memoryMonitorId) {
       clearInterval(this.memoryMonitorId);
       this.memoryMonitorId = null;
     }
   }
 
-  /**
-   * 内部方法：开始帧率监控
-   * @private
-   */
-  _startFpsMonitoring() {
+  private _startFpsMonitoring(): void {
     if (!this.isMonitoring) return;
-    
+
     this.fpsMonitorId = requestAnimationFrame((currentTime) => {
       this.frameCount++;
       const deltaTime = currentTime - this.lastTime;
-      
-      // 每秒计算一次FPS
+
       if (deltaTime >= 1000) {
         const fps = Math.round((this.frameCount * 1000) / deltaTime);
         this._recordFps(fps);
-        
-        // 重置计数器
+
         this.frameCount = 0;
         this.lastTime = currentTime;
       }
-      
+
       this._startFpsMonitoring();
     });
   }
 
-  /**
-   * 内部方法：记录FPS
-   * @private
-   * @param {number} fps - 帧率值
-   */
-  _recordFps(fps) {
+  private _recordFps(fps: number): void {
     this.fpsHistory.push(fps);
     if (this.fpsHistory.length > this.maxFpsHistory) {
       this.fpsHistory.shift();
     }
-    
+
     this.metrics.fps.push({
       timestamp: Date.now(),
       value: fps
     });
   }
 
-  /**
-   * 内部方法：收集内存指标
-   * @private
-   */
-  _collectMemoryMetrics() {
-    if (!performance.memory) return;
-    
-    const memoryInfo = {
+  private _collectMemoryMetrics(): void {
+    const memory = (performance as unknown as { memory: MemoryInfo }).memory;
+    if (!memory) return;
+
+    const memoryInfo: MemoryRecord = {
       timestamp: Date.now(),
-      usedJSHeapSize: performance.memory.usedJSHeapSize,
-      totalJSHeapSize: performance.memory.totalJSHeapSize,
-      jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+      usedJSHeapSize: memory.usedJSHeapSize,
+      totalJSHeapSize: memory.totalJSHeapSize,
+      jsHeapSizeLimit: memory.jsHeapSizeLimit
     };
-    
+
     this.metrics.memory.push(memoryInfo);
   }
 
-  /**
-   * 记录函数执行时间
-   * @param {string} id - 执行标记ID
-   * @param {Function} fn - 要执行的函数
-   * @returns {*} 函数执行结果
-   */
-  measureExecutionTime(id, fn) {
+  measureExecutionTime<T>(id: string, fn: () => T): T {
     const startTime = performance.now();
-    
+
     try {
       const result = fn();
       const duration = performance.now() - startTime;
-      
-      // 记录执行时间
+
       if (!this.metrics.executionTimes[id]) {
         this.metrics.executionTimes[id] = [];
       }
-      
+
       this.metrics.executionTimes[id].push({
         timestamp: Date.now(),
         duration
       });
-      
+
       return result;
     } catch (error) {
       logger.error(`测量执行时间出错 [${id}]:`, error);
@@ -1956,14 +2004,10 @@ class PerformanceMonitor {
     }
   }
 
-  /**
-   * 开始测量渲染时间
-   * @returns {Function} 结束测量的函数
-   */
-  startRenderMeasurement() {
+  startRenderMeasurement(): () => number {
     const startTime = performance.now();
-    
-    return () => {
+
+    return (): number => {
       const duration = performance.now() - startTime;
       this.metrics.renderTimes.push({
         timestamp: Date.now(),
@@ -1973,47 +2017,31 @@ class PerformanceMonitor {
     };
   }
 
-  /**
-   * 获取当前FPS
-   * @returns {number} 当前帧率
-   */
-  getCurrentFps() {
+  getCurrentFps(): number {
     if (this.fpsHistory.length === 0) return 0;
     return this.fpsHistory[this.fpsHistory.length - 1];
   }
 
-  /**
-   * 获取平均FPS
-   * @param {number} samples - 样本数量
-   * @returns {number} 平均帧率
-   */
-  getAverageFps(samples = 10) {
+  getAverageFps(samples: number = 10): number {
     if (this.fpsHistory.length === 0) return 0;
-    
+
     const recentSamples = this.fpsHistory.slice(-samples);
     const sum = recentSamples.reduce((acc, fps) => acc + fps, 0);
     return Math.round(sum / recentSamples.length);
   }
 
-  /**
-   * 获取内存使用情况
-   * @returns {Object|null} 内存信息或null
-   */
-  getMemoryInfo() {
-    if (!performance.memory) return null;
-    
+  getMemoryInfo(): MemoryInfo | null {
+    const memory = (performance as unknown as { memory: MemoryInfo }).memory;
+    if (!memory) return null;
+
     return {
-      usedJSHeapSize: performance.memory.usedJSHeapSize,
-      totalJSHeapSize: performance.memory.totalJSHeapSize,
-      jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
-      usedPercent: Math.round((performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100)
+      usedJSHeapSize: memory.usedJSHeapSize,
+      totalJSHeapSize: memory.totalJSHeapSize,
+      jsHeapSizeLimit: memory.jsHeapSizeLimit,
+      usedPercent: Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100)
     };
   }
 
-  /**
-   * 获取性能指标
-   * @returns {Object} 性能指标数据
-   */
   getMetrics() {
     return {
       fps: [...this.metrics.fps],
@@ -2026,10 +2054,7 @@ class PerformanceMonitor {
     };
   }
 
-  /**
-   * 清除性能指标数据
-   */
-  clearMetrics() {
+  clearMetrics(): void {
     this.metrics = {
       fps: [],
       memory: [],
@@ -2039,22 +2064,14 @@ class PerformanceMonitor {
     this.fpsHistory = [];
   }
 
-  /**
-   * 导出性能报告
-   * @returns {string} JSON格式的性能报告
-   */
-  exportReport() {
+  exportReport(): string {
     return JSON.stringify(this.getMetrics(), null, 2);
   }
 
-  /**
-   * 检查性能是否良好
-   * @returns {Object} 性能状态对象
-   */
-  checkPerformanceHealth() {
+  checkPerformanceHealth(): PerformanceHealth {
     const avgFps = this.getAverageFps();
     const memoryInfo = this.getMemoryInfo();
-    
+
     return {
       isHealthy: avgFps >= 30 && (!memoryInfo || memoryInfo.usedPercent < 80),
       fpsHealthy: avgFps >= 30,
@@ -2065,36 +2082,29 @@ class PerformanceMonitor {
     };
   }
 
-  /**
-   * 监听性能问题
-   * @param {Function} callback - 性能问题回调函数
-   * @returns {Object} 包含stop方法的控制对象
-   */
-  watchPerformance(callback) {
+  watchPerformance(callback: (health: PerformanceHealth) => void): WatchResult {
     const checkInterval = setInterval(() => {
       const health = this.checkPerformanceHealth();
       if (!health.isHealthy) {
         callback(health);
       }
-    }, 5000); // 每5秒检查一次
-    
+    }, 5000);
+
     return {
       stop: () => clearInterval(checkInterval)
     };
   }
 }
 
-// 创建默认实例
 const defaultPerformanceMonitor = new PerformanceMonitor();
 
-// 导出类和默认实例
 export { PerformanceMonitor };
 export default defaultPerformanceMonitor;
 
 // src/controllers/elementController.js
 
-import { logger } from '../utils/logger.js';
-import { getElement, getElements } from '../utils/dom.js';
+import { logger } from '../utils/logger.ts';
+import { getElement, getElements } from '../utils/dom.ts';
 
 /**
  * 元素控制器类
@@ -2493,8 +2503,8 @@ export default elementController;
 
 // src/controllers/layoutController.js
 
-import { logger } from '../utils/logger.js';
-import { getElement, getElements, createElement } from '../utils/dom.js';
+import { logger } from '../utils/logger.ts';
+import { getElement, getElements, createElement } from '../utils/dom.ts';
 import elementController from './elementController.js';
 
 // 预定义布局配置
@@ -2892,8 +2902,8 @@ export default styles;
 
 // src/styles/theme.js
 
-import logger from '../utils/logger.js';
-import { injectStyle } from '../utils/dom.js';
+import logger from '../utils/logger.ts';
+import { injectStyle } from '../utils/dom.ts';
 
 // 默认主题配置
 const DEFAULT_THEMES = {
@@ -3312,7 +3322,7 @@ const themeManager = new ThemeManager();
 export { ThemeManager };
 export default themeManager;
 
-// src/ui_manager.js v2.0.0
+// src/ui_manager.js v2.0.1
 
 import {
   debounce,
@@ -3328,11 +3338,11 @@ import {
   removeEvent,
   createElement,
   injectStyle
-} from './utils/dom.js';
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
+} from './utils/dom.ts';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
 import themeManager from './styles/theme.js';
-import autoExecutor from './utils/autoExecutor.js';
+import autoExecutor from './utils/autoExecutor.ts';
 
 import {
   createSettingsPanelContent,
@@ -4015,7 +4025,7 @@ export default UIManager;
 // ==UserScript==
 // @name         抖音网页版UI定制工具
 // @namespace    http://tampermonkey.net/
-// @version 2.0.0
+// @version 2.0.1
 // @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
 // @author       SutChan
 // @match        *://*.douyin.com/*
@@ -4031,22 +4041,22 @@ export default UIManager;
  * src/main.js
  * 抖音Web端界面UI定制工具主入口
  * 作者：SutChan
- * 版本：2.0.0
+ * 版本：2.0.1
  * 更新日期：2026-04-27
  */
 
-import { debounce, getElement, addEvent, createElement, injectStyle } from './utils/dom.js';
-import { getItem, setItem, NamespacedStorage } from './utils/storage.js';
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
-import performanceMonitor from './utils/performance.js';
+import { debounce, getElement, addEvent, createElement, injectStyle } from './utils/dom.ts';
+import { getItem, setItem, NamespacedStorage } from './utils/storage.ts';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
+import performanceMonitor from './utils/performance.ts';
 import configManager from './config.js';
 import UIManager from './ui_manager.js';
 import themeManager from './styles/theme.js';
 import { injectStyles, injectBasicStyles } from './utils/styleGenerator.js';
 import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.js';
 
-const CURRENT_VERSION = '2.0.0';
+const CURRENT_VERSION = '2.0.1';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');

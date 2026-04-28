@@ -1,8 +1,8 @@
 // 配置管理模块 v2.0.1 - 负责处理配置的加载、保存和默认设置
 
-import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
+import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.ts';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
 
 // 创建配置专用的命名空间存储
 const configStorage = new NamespacedStorage('douyin_tool_config');

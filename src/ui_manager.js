@@ -14,11 +14,11 @@ import {
   removeEvent,
   createElement,
   injectStyle
-} from './utils/dom.js';
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
+} from './utils/dom.ts';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
 import themeManager from './styles/theme.js';
-import autoExecutor from './utils/autoExecutor.js';
+import autoExecutor from './utils/autoExecutor.ts';
 
 import {
   createSettingsPanelContent,

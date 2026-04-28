@@ -21,11 +21,11 @@
  * 更新日期：2026-04-27
  */
 
-import { debounce, getElement, addEvent, createElement, injectStyle } from './utils/dom.js';
-import { getItem, setItem, NamespacedStorage } from './utils/storage.js';
-import logger from './utils/logger.js';
-import eventEmitter from './utils/eventEmitter.js';
-import performanceMonitor from './utils/performance.js';
+import { debounce, getElement, addEvent, createElement, injectStyle } from './utils/dom.ts';
+import { getItem, setItem, NamespacedStorage } from './utils/storage.ts';
+import logger from './utils/logger.ts';
+import eventEmitter from './utils/eventEmitter.ts';
+import performanceMonitor from './utils/performance.ts';
 import configManager from './config.js';
 import UIManager from './ui_manager.js';
 import themeManager from './styles/theme.js';

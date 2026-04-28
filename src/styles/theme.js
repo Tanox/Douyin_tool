@@ -1,7 +1,7 @@
 // src/styles/theme.js
 
-import logger from '../utils/logger.js';
-import { injectStyle } from '../utils/dom.js';
+import logger from '../utils/logger.ts';
+import { injectStyle } from '../utils/dom.ts';
 
 // 默认主题配置
 const DEFAULT_THEMES = {

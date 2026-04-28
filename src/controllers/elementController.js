@@ -1,7 +1,7 @@
 // src/controllers/elementController.js
 
-import { logger } from '../utils/logger.js';
-import { getElement, getElements } from '../utils/dom.js';
+import { logger } from '../utils/logger.ts';
+import { getElement, getElements } from '../utils/dom.ts';
 
 /**
  * 元素控制器类

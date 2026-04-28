@@ -112,6 +112,35 @@ export interface DOMCacheEntry {
   timestamp: number;
 }
 
+export function isDOMCacheEntry(value: unknown): value is DOMCacheEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  
+  const entry = value as DOMCacheEntry;
+  
+  if (typeof entry.timestamp !== 'number') {
+    return false;
+  }
+  
+  if (entry.element !== undefined && entry.element !== null && !(entry.element instanceof Element)) {
+    return false;
+  }
+  
+  if (entry.elements !== undefined) {
+    if (!Array.isArray(entry.elements)) {
+      return false;
+    }
+    for (const elem of entry.elements) {
+      if (!(elem instanceof HTMLElement)) {
+        return false;
+      }
+    }
+  }
+  
+  return true;
+}
+
 export type DOMQuery = string | ((element: Element) => boolean);
 
 export interface BatchUpdateCallback {

@@ -82,7 +82,7 @@ function buildUserScript() {
       'src/utils/storage.ts',
       'src/utils/eventEmitter.ts',
       'src/utils/autoExecutor.ts',
-      'src/utils/performance.js',
+      'src/utils/performance.ts',
       'src/controllers/elementController.js',
       'src/controllers/layoutController.js',
       'src/styles/index.js',

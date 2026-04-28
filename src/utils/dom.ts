@@ -1,5 +1,6 @@
 import logger from './logger.js';
 import type { DOMCacheEntry, ElementStructure, BatchUpdateCallback } from '../types/index.js';
+import { isDOMCacheEntry } from '../types/index.js';
 
 const domCache = new Map<string, DOMCacheEntry>();
 const cacheExpiry = 5000;
@@ -55,8 +56,13 @@ export function getElement(selector: string, parent: HTMLElement | Document = do
     const cacheKey = generateCacheKey(selector, parent);
 
     if (domCache.has(cacheKey)) {
-      const { element } = domCache.get(cacheKey)!;
-      return element as HTMLElement | null;
+      const entry = domCache.get(cacheKey)!;
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.element as HTMLElement | null;
+      }
     }
 
     const element = parent.querySelector<HTMLElement>(selector);
@@ -79,7 +85,12 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return entry.elements || [];
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.elements || [];
+      }
     }
 
     const elements = Array.from(parent.querySelectorAll<HTMLElement>(selector));
@@ -102,7 +113,12 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return entry.elements || [];
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.elements || [];
+      }
     }
 
     const elements: HTMLElement[] = [];
@@ -148,7 +164,12 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return entry.elements || [];
+      if (!isDOMCacheEntry(entry)) {
+        logger.warn('缓存条目类型验证失败，已清除');
+        domCache.delete(cacheKey);
+      } else {
+        return entry.elements || [];
+      }
     }
 
     const result: HTMLElement[] = [];
