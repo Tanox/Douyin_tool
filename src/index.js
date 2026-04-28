@@ -1,4 +1,4 @@
-// 抖音Web端界面UI定制工具 - 主入口文件
+// src/index.ts - 抖音Web端界面UI定制工具主入口（TypeScript迁移中）
 
 import logger from './utils/logger.ts';
 import eventEmitter from './utils/eventEmitter.ts';

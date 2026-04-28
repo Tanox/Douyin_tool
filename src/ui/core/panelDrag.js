@@ -1,4 +1,4 @@
-// src/ui/core/panelDrag.js
+// src/ui/core/panelDrag.ts - 面板拖拽功能（TypeScript迁移中）
 
 export function makePanelDraggable(panel) {
   if (!panel) return;

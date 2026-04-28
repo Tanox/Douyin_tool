@@ -1,4 +1,4 @@
-// src/styles/index.js
+// src/styles/index.ts - 样式模块统一导出（TypeScript迁移中）
 
 // 主题切换模块
 export { ThemeManager } from './theme.js';

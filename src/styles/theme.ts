@@ -1,10 +1,17 @@
-// src/styles/theme.ts - 主题管理器（TypeScript迁移中）
-
 import logger from '../utils/logger.ts';
 import { injectStyle } from '../utils/dom.ts';
 
-// 默认主题配置
-const DEFAULT_THEMES = {
+interface ThemeVariables {
+  [key: string]: string;
+}
+
+interface Theme {
+  name: string;
+  label: string;
+  variables: ThemeVariables;
+}
+
+const DEFAULT_THEMES: Record<string, Theme> = {
   light: {
     name: 'light',
     label: '浅色模式',
@@ -82,13 +89,19 @@ const DEFAULT_THEMES = {
   }
 };
 
-/**
- * 主题管理器类
- */
+interface ThemeConfig {
+  name: string;
+  label: string;
+  colors?: Record<string, string>;
+  fonts?: Record<string, string>;
+}
+
 class ThemeManager {
-  /**
-   * 构造函数
-   */
+  private themes: Record<string, Theme>;
+  private currentTheme: string | null;
+  private styleElement: HTMLStyleElement | null;
+  private themePrefix: string;
+
   constructor() {
     this.themes = { ...DEFAULT_THEMES };
     this.currentTheme = null;
@@ -96,38 +109,25 @@ class ThemeManager {
     this.themePrefix = 'douyin_ui_customizer_theme_';
   }
 
-  /**
-   * 初始化主题管理器
-   */
-  init() {
+  init(): void {
     try {
-      // 尝试从存储中获取保存的主题
       const savedTheme = localStorage.getItem(`${this.themePrefix}current`);
       
-      // 如果有保存的主题且存在，则应用
       if (savedTheme && this.themes[savedTheme]) {
         this.switchTheme(savedTheme);
       } else {
-        // 否则使用默认主题（浅色）
         this.switchTheme('light');
       }
       
       logger.info('主题管理器初始化成功');
     } catch (error) {
       logger.error('主题管理器初始化失败:', error);
-      // 失败时使用默认主题
       this.switchTheme('light');
     }
   }
 
-  /**
-   * 切换到指定主题
-   * @param {string} themeName - 主题名称
-   * @returns {boolean} 是否切换成功
-   */
-  switchTheme(themeName) {
+  switchTheme(themeName: string): boolean {
     try {
-      // 验证主题是否存在
       if (!this.themes[themeName]) {
         logger.warn(`主题 ${themeName} 不存在，使用默认主题`);
         themeName = 'light';
@@ -135,35 +135,27 @@ class ThemeManager {
 
       const theme = this.themes[themeName];
       
-      // 生成CSS变量样式
       const cssVariables = Object.entries(theme.variables)
         .map(([key, value]) => `${key}: ${value};`)
         .join('\n  ');
       
-      // 生成CSS
       const css = `:root {
   ${cssVariables}
 }
 
-/* 主题特定样式 */
 .douyin-ui-customizer-theme-${themeName} {}
 `;
       
-      // 移除旧的样式元素
       if (this.styleElement && this.styleElement.parentNode) {
         this.styleElement.parentNode.removeChild(this.styleElement);
       }
       
-      // 注入新的样式
       this.styleElement = injectStyle(css);
       
-      // 更新当前主题
       this.currentTheme = themeName;
       
-      // 保存主题设置
       localStorage.setItem(`${this.themePrefix}current`, themeName);
       
-      // 添加主题类到body
       document.body.classList.remove(
         ...Object.keys(this.themes).map(t => `douyin-ui-customizer-theme-${t}`)
       );
@@ -177,52 +169,35 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 获取当前主题名称
-   * @returns {string} 当前主题名称
-   */
-  getCurrentTheme() {
+  getCurrentTheme(): string {
     return this.currentTheme || 'light';
   }
 
-  /**
-   * 获取所有可用主题
-   * @returns {Object[]} 主题对象数组
-   */
-  getAvailableThemes() {
+  getAvailableThemes(): Theme[] {
     return Object.values(this.themes);
   }
 
-  /**
-   * 创建新的自定义主题
-   * @param {Object} themeConfig - 主题配置对象，包含name、label、colors和fonts属性
-   * @returns {String} 创建的主题ID
-   */
-  createTheme(themeConfig) {
+  createTheme(themeConfig: ThemeConfig): string | null {
     try {
       if (!themeConfig.name || !themeConfig.label) {
         throw new Error('主题配置必须包含name和label属性');
       }
 
-      // 转换colors和fonts为CSS变量
-      const variables = {};
+      const variables: ThemeVariables = {};
       
-      // 处理颜色变量
       if (themeConfig.colors) {
         Object.entries(themeConfig.colors).forEach(([key, value]) => {
           variables[`--${key}`] = value;
         });
       }
       
-      // 处理字体变量
       if (themeConfig.fonts) {
         Object.entries(themeConfig.fonts).forEach(([key, value]) => {
           variables[`--font-${key}`] = value;
         });
       }
 
-      // 注册新主题
-      const theme = {
+      const theme: Theme = {
         name: themeConfig.name,
         label: themeConfig.label,
         variables: variables
@@ -237,31 +212,22 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 删除自定义主题
-   * @param {String} themeName - 主题名称
-   * @returns {Boolean} 删除是否成功
-   */
-  deleteTheme(themeName) {
+  deleteTheme(themeName: string): boolean {
     try {
-      // 不允许删除默认主题
       if (DEFAULT_THEMES[themeName]) {
         logger.warn(`不能删除默认主题: ${themeName}`);
         return false;
       }
 
-      // 检查主题是否存在
       if (!this.themes[themeName]) {
         logger.warn(`主题不存在: ${themeName}`);
         return false;
       }
 
-      // 如果正在使用要删除的主题，则切换到默认主题
       if (this.currentTheme === themeName) {
         this.switchTheme('light');
       }
 
-      // 删除主题
       delete this.themes[themeName];
       logger.info(`主题删除成功: ${themeName}`);
       return true;
@@ -271,27 +237,16 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 获取主题配置
-   * @param {string} themeName - 主题名称
-   * @returns {Object|null} 主题配置对象
-   */
-  getThemeConfig(themeName) {
+  getTheme(themeName: string): Theme | null {
     return this.themes[themeName] || null;
   }
 
-  /**
-   * 注册新主题
-   * @param {Object} theme - 主题配置对象
-   * @returns {boolean} 是否注册成功
-   */
-  registerTheme(theme) {
+  registerTheme(theme: Theme): boolean {
     try {
       if (!theme.name || !theme.variables) {
         throw new Error('主题配置必须包含name和variables属性');
       }
       
-      // 验证变量格式
       if (typeof theme.variables !== 'object') {
         throw new Error('variables必须是对象');
       }
@@ -310,12 +265,7 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 导出主题配置
-   * @param {string} themeName - 主题名称
-   * @returns {string|null} JSON格式的主题配置
-   */
-  exportTheme(themeName) {
+  exportTheme(themeName: string): string | null {
     try {
       const theme = this.themes[themeName];
       if (!theme) return null;
@@ -327,14 +277,9 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 导入主题配置
-   * @param {string} themeJson - JSON格式的主题配置
-   * @returns {boolean} 是否导入成功
-   */
-  importTheme(themeJson) {
+  importTheme(themeJson: string): boolean {
     try {
-      const theme = JSON.parse(themeJson);
+      const theme = JSON.parse(themeJson) as Theme;
       return this.registerTheme(theme);
     } catch (error) {
       logger.error('主题导入失败:', error);
@@ -342,12 +287,7 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 生成主题预览样式
-   * @param {string} themeName - 主题名称
-   * @returns {string|null} 预览样式字符串
-   */
-  generatePreviewStyle(themeName) {
+  generatePreviewStyle(themeName: string): string | null {
     const theme = this.themes[themeName];
     if (!theme) return null;
     
@@ -356,22 +296,15 @@ class ThemeManager {
       .join('; ');
   }
 
-  /**
-   * 应用主题到特定元素
-   * @param {HTMLElement} element - 目标元素
-   * @param {string} themeName - 主题名称
-   */
-  applyThemeToElement(element, themeName) {
+  applyThemeToElement(element: HTMLElement, themeName: string): void {
     try {
       const theme = this.themes[themeName];
       if (!theme || !element) return;
       
-      // 应用CSS变量
       Object.entries(theme.variables).forEach(([key, value]) => {
         element.style.setProperty(key, value);
       });
       
-      // 添加主题类
       element.classList.remove(
         ...Object.keys(this.themes).map(t => `douyin-ui-customizer-theme-${t}`)
       );
@@ -381,30 +314,22 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 重置所有主题设置
-   */
-  reset() {
+  reset(): void {
     try {
-      // 移除样式元素
       if (this.styleElement && this.styleElement.parentNode) {
         this.styleElement.parentNode.removeChild(this.styleElement);
       }
       
-      // 移除主题类
       Object.keys(this.themes).forEach(themeName => {
         document.body.classList.remove(`douyin-ui-customizer-theme-${themeName}`);
       });
       
-      // 重置主题配置
       this.themes = { ...DEFAULT_THEMES };
       this.currentTheme = null;
       this.styleElement = null;
       
-      // 清除存储
       localStorage.removeItem(`${this.themePrefix}current`);
       
-      // 重新初始化
       this.init();
       
       logger.info('主题设置已重置');
@@ -412,9 +337,29 @@ class ThemeManager {
       logger.error('重置主题设置失败:', error);
     }
   }
+
+  on(event: string, callback: (data: unknown) => void): void {
+    if (event === 'themeChanged') {
+      const originalSwitchTheme = this.switchTheme.bind(this);
+      this.switchTheme = (themeName: string): boolean => {
+        const result = originalSwitchTheme(themeName);
+        if (result) {
+          callback(themeName);
+        }
+        return result;
+      };
+    }
+  }
+
+  applyTheme(themeName: string): Promise<boolean> {
+    return Promise.resolve(this.switchTheme(themeName));
+  }
+
+  listThemes(): Theme[] {
+    return this.getAvailableThemes();
+  }
 }
 
-// 创建并导出主题管理器实例
 const themeManager = new ThemeManager();
 
 export { ThemeManager };

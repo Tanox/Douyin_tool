@@ -1,4 +1,4 @@
-// src/ui/index.js
+// src/ui/index.ts - UI组件统一导出（TypeScript迁移中）
 
 export * from './panels/settingsPanel.js';
 export * from './panels/settingsEvents.js';

@@ -1,4 +1,4 @@
-// src/ui/customizations/liveCustomizations.js
+// src/ui/customizations/liveCustomizations.ts - 直播间界面定制（TypeScript迁移中）
 
 import { findElementsByClassPattern, findElementsByStructure } from '../../utils/dom.js';
 import logger from '../../utils/logger.js';

@@ -1,12 +1,24 @@
-// src/controllers/layoutController.ts - 布局控制器（TypeScript迁移中）
-
 import { logger } from '../utils/logger.ts';
 import { getElement, getElements, createElement } from '../utils/dom.ts';
-import elementController from './elementController.js';
+import elementController from './elementController.ts';
 
-// 预定义布局配置
-const PREDEFINED_LAYOUTS = {
-  // 紧凑布局 - 最小化界面元素，最大化内容显示区域
+interface LayoutRule {
+  selector: string;
+  action?: 'hide';
+  styles?: Record<string, string>;
+}
+
+interface Layout {
+  name: string;
+  label: string;
+  description: string;
+  rules: LayoutRule[];
+  isCustom?: boolean;
+  createdAt?: string;
+  importedAt?: string;
+}
+
+const PREDEFINED_LAYOUTS: Record<string, Layout> = {
   compact: {
     name: 'compact',
     label: '紧凑布局',
@@ -20,7 +32,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 全屏布局 - 隐藏所有非必要元素，专注于内容
   fullscreen: {
     name: 'fullscreen',
     label: '全屏布局',
@@ -32,7 +43,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 默认布局 - 标准的三栏布局
   standard: {
     name: 'standard',
     label: '标准布局',
@@ -45,7 +55,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 阅读模式 - 优化文本阅读体验
   reader: {
     name: 'reader',
     label: '阅读模式',
@@ -58,7 +67,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 视频模式 - 优化视频观看体验
   video: {
     name: 'video',
     label: '视频模式',
@@ -72,33 +80,25 @@ const PREDEFINED_LAYOUTS = {
   }
 };
 
-/**
- * 布局控制器类
- */
 class LayoutController {
-  /**
-   * 构造函数
-   */
+  private layouts: Record<string, Layout>;
+  private currentLayout: string | null;
+  private customLayouts: Record<string, Layout>;
+  private layoutPrefix: string;
+
   constructor() {
     this.layouts = { ...PREDEFINED_LAYOUTS };
     this.currentLayout = null;
     this.customLayouts = {};
     this.layoutPrefix = 'douyin_ui_customizer_layout_';
     
-    // 初始化时从存储加载自定义布局
     this._loadCustomLayouts();
     
     logger.info('LayoutController 初始化成功');
   }
 
-  /**
-   * 应用预定义的布局模板到当前页面
-   * @param {String} layoutName - 布局名称，必须是预定义布局之一
-   * @returns {Promise<Boolean>} 应用是否成功
-   */
-  async applyLayout(layoutName) {
+  async applyLayout(layoutName: string): Promise<boolean> {
     try {
-      // 验证布局名称
       const layout = this.layouts[layoutName];
       if (!layout) {
         logger.warn(`布局 ${layoutName} 不存在`);
@@ -107,10 +107,8 @@ class LayoutController {
 
       logger.info(`开始应用布局: ${layout.label}`);
 
-      // 首先重置所有元素样式
       await this.resetLayout();
 
-      // 应用布局规则
       for (const rule of layout.rules) {
         if (rule.action === 'hide') {
           await elementController.hideElement(rule.selector);
@@ -119,13 +117,10 @@ class LayoutController {
         }
       }
 
-      // 更新当前布局
       this.currentLayout = layoutName;
       
-      // 保存当前布局设置
       localStorage.setItem(`${this.layoutPrefix}current`, layoutName);
       
-      // 添加布局类到body
       document.body.classList.remove(
         ...Object.keys(this.layouts).map(l => `douyin-ui-customizer-layout-${l}`)
       );
@@ -139,15 +134,8 @@ class LayoutController {
     }
   }
 
-  /**
-   * 保存用户自定义布局配置，可在后续应用或分享给其他用户
-   * @param {String} layoutName - 布局名称，必须唯一且不为空
-   * @param {Object} layoutConfig - 布局配置对象，包含各页面元素的位置、大小等信息
-   * @returns {Boolean} 保存是否成功
-   */
-  saveLayout(layoutName, layoutConfig) {
+  saveLayout(layoutName: string, layoutConfig: Partial<Layout>): boolean {
     try {
-      // 验证参数
       if (!layoutName || typeof layoutName !== 'string' || layoutName.trim() === '') {
         throw new Error('布局名称不能为空');
       }
@@ -156,13 +144,11 @@ class LayoutController {
         throw new Error('布局配置必须是有效的对象');
       }
 
-      // 不允许覆盖预定义布局
       if (PREDEFINED_LAYOUTS[layoutName]) {
         throw new Error('不能覆盖预定义布局');
       }
 
-      // 创建布局配置
-      const layout = {
+      const layout: Layout = {
         name: layoutName,
         label: layoutConfig.label || layoutName,
         description: layoutConfig.description || '自定义布局',
@@ -171,11 +157,9 @@ class LayoutController {
         createdAt: new Date().toISOString()
       };
 
-      // 保存布局
       this.layouts[layoutName] = layout;
       this.customLayouts[layoutName] = layout;
       
-      // 持久化保存
       this._saveCustomLayouts();
 
       logger.info(`自定义布局保存成功: ${layout.label}`);
@@ -186,39 +170,24 @@ class LayoutController {
     }
   }
 
-  /**
-   * 获取所有可用的布局
-   * @returns {Array<Object>} 布局对象数组
-   */
-  getAvailableLayouts() {
+  getAvailableLayouts(): Layout[] {
     return Object.values(this.layouts);
   }
 
-  /**
-   * 获取当前应用的布局名称
-   * @returns {String|null} 当前布局名称
-   */
-  getCurrentLayout() {
+  getCurrentLayout(): string | null {
     return this.currentLayout;
   }
 
-  /**
-   * 重置布局为默认状态
-   * @returns {Promise<Boolean>} 重置是否成功
-   */
-  async resetLayout() {
+  async resetLayout(): Promise<boolean> {
     try {
-      // 移除所有布局类
       Object.keys(this.layouts).forEach(layoutName => {
         document.body.classList.remove(`douyin-ui-customizer-layout-${layoutName}`);
       });
 
-      // 重置所有可能被布局修改过的元素
-      const allSelectors = new Set();
+      const allSelectors = new Set<string>();
       Object.values(this.layouts).forEach(layout => {
         layout.rules.forEach(rule => {
           if (rule.selector) {
-            // 解析可能包含多个选择器的字符串
             rule.selector.split(',').forEach(selector => {
               allSelectors.add(selector.trim());
             });
@@ -226,13 +195,11 @@ class LayoutController {
         });
       });
 
-      // 重置每个选择器匹配的元素
       for (const selector of allSelectors) {
         await elementController.showElement(selector);
         elementController.resetElementStyle(selector);
       }
 
-      // 清除当前布局
       this.currentLayout = null;
       localStorage.removeItem(`${this.layoutPrefix}current`);
 
@@ -244,35 +211,25 @@ class LayoutController {
     }
   }
 
-  /**
-   * 删除自定义布局
-   * @param {String} layoutName - 布局名称
-   * @returns {Boolean} 删除是否成功
-   */
-  deleteLayout(layoutName) {
+  deleteLayout(layoutName: string): boolean {
     try {
-      // 不允许删除预定义布局
       if (PREDEFINED_LAYOUTS[layoutName]) {
         logger.warn(`不能删除预定义布局: ${layoutName}`);
         return false;
       }
 
-      // 检查布局是否存在
       if (!this.customLayouts[layoutName]) {
         logger.warn(`自定义布局不存在: ${layoutName}`);
         return false;
       }
 
-      // 如果正在使用要删除的布局，则重置布局
       if (this.currentLayout === layoutName) {
         this.resetLayout();
       }
 
-      // 删除布局
       delete this.layouts[layoutName];
       delete this.customLayouts[layoutName];
       
-      // 更新存储
       this._saveCustomLayouts();
 
       logger.info(`布局删除成功: ${layoutName}`);
@@ -283,12 +240,7 @@ class LayoutController {
     }
   }
 
-  /**
-   * 导出布局配置
-   * @param {String} layoutName - 布局名称
-   * @returns {String|null} JSON格式的布局配置
-   */
-  exportLayout(layoutName) {
+  exportLayout(layoutName: string): string | null {
     try {
       const layout = this.layouts[layoutName];
       if (!layout) {
@@ -303,29 +255,20 @@ class LayoutController {
     }
   }
 
-  /**
-   * 导入布局配置
-   * @param {String} layoutJson - JSON格式的布局配置
-   * @returns {Boolean} 导入是否成功
-   */
-  importLayout(layoutJson) {
+  importLayout(layoutJson: string): boolean {
     try {
-      const layout = JSON.parse(layoutJson);
+      const layout = JSON.parse(layoutJson) as Layout;
       
-      // 验证布局配置
       if (!layout.name || !layout.rules || !Array.isArray(layout.rules)) {
         throw new Error('无效的布局配置格式');
       }
 
-      // 确保是自定义布局
       layout.isCustom = true;
       layout.importedAt = new Date().toISOString();
 
-      // 保存布局
       this.layouts[layout.name] = layout;
       this.customLayouts[layout.name] = layout;
       
-      // 持久化保存
       this._saveCustomLayouts();
 
       logger.info(`布局导入成功: ${layout.label || layout.name}`);
@@ -336,17 +279,12 @@ class LayoutController {
     }
   }
 
-  /**
-   * 从本地存储加载自定义布局
-   * @private
-   */
-  _loadCustomLayouts() {
+  private _loadCustomLayouts(): void {
     try {
       const savedLayouts = localStorage.getItem(`${this.layoutPrefix}custom`);
       if (savedLayouts) {
-        const layouts = JSON.parse(savedLayouts);
+        const layouts = JSON.parse(savedLayouts) as Record<string, Layout>;
         
-        // 合并自定义布局
         Object.entries(layouts).forEach(([name, layout]) => {
           if (!PREDEFINED_LAYOUTS[name]) {
             this.layouts[name] = layout;
@@ -361,11 +299,7 @@ class LayoutController {
     }
   }
 
-  /**
-   * 保存自定义布局到本地存储
-   * @private
-   */
-  _saveCustomLayouts() {
+  private _saveCustomLayouts(): void {
     try {
       localStorage.setItem(`${this.layoutPrefix}custom`, JSON.stringify(this.customLayouts));
     } catch (error) {
@@ -374,7 +308,6 @@ class LayoutController {
   }
 }
 
-// 创建并导出布局控制器实例
 const layoutController = new LayoutController();
 
 export { LayoutController };

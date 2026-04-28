@@ -1,5 +1,3 @@
-// src/ui_manager.ts - UI管理器 v2.0.1（TypeScript迁移中）
-
 import {
   debounce,
   throttle,
@@ -17,7 +15,7 @@ import {
 } from './utils/dom.ts';
 import logger from './utils/logger.ts';
 import eventEmitter from './utils/eventEmitter.ts';
-import themeManager from './styles/theme.js';
+import themeManager from './styles/theme.ts';
 import autoExecutor from './utils/autoExecutor.ts';
 
 import {
@@ -27,14 +25,27 @@ import {
   applySettingsToPanel,
   setupAutoExecutorEvents,
   updateAutoExecutorStatus
-} from './ui/panels/settingsPanel.js';
+} from './ui/panels/settingsPanel.ts';
 
-import { makePanelDraggable, restrictPanelToViewport } from './ui/core/panelDrag.js';
-import { applyVideoCustomizations } from './ui/customizations/videoCustomizations.js';
-import { applyLiveCustomizations } from './ui/customizations/liveCustomizations.js';
+import { makePanelDraggable, restrictPanelToViewport } from './ui/core/panelDrag.ts';
+import { applyVideoCustomizations } from './ui/customizations/videoCustomizations.ts';
+import { applyLiveCustomizations } from './ui/customizations/liveCustomizations.ts';
+import type { Config } from './config.ts';
 
 class UIManager {
-  constructor(config) {
+  config: Config;
+  settingsPanel: HTMLElement | null;
+  toggleButton: HTMLButtonElement | null;
+  isPanelVisible: boolean;
+  lastScrollPosition: number;
+  debouncedApplyCustomizations: () => void;
+  throttledHandleScroll: (e: Event) => void;
+  mutationObserver: MutationObserver | null;
+  domObserver: MutationObserver | null;
+  autoExecutorStatusInterval: ReturnType<typeof setInterval> | null;
+  autoExecutor: typeof autoExecutor;
+
+  constructor(config: Config) {
     this.config = config;
     this.settingsPanel = null;
     this.toggleButton = null;
@@ -42,7 +53,7 @@ class UIManager {
     this.lastScrollPosition = 0;
 
     this.debouncedApplyCustomizations = debounce(() => this.applyAllCustomizations(), 500);
-    this.throttledHandleScroll = throttle((e) => this.handleScroll(e), 100);
+    this.throttledHandleScroll = throttle((e: Event) => this.handleScroll(e), 100);
     this.mutationObserver = null;
     this.domObserver = null;
     this.autoExecutorStatusInterval = null;
@@ -51,22 +62,22 @@ class UIManager {
 
     logger.info('UIManager initialized with config');
 
-    themeManager.on('themeChanged', (newTheme) => {
+    themeManager.on('themeChanged', (newTheme: string) => {
       logger.info(`Theme changed to ${newTheme}`);
       this.applyTheme(newTheme);
     });
   }
 
-  applyVideoCustomizations() {
+  applyVideoCustomizations(): void {
     applyVideoCustomizations(this);
   }
 
-  applyLiveCustomizations() {
+  applyLiveCustomizations(): void {
     applyLiveCustomizations(this);
   }
 
-  toggleElement(selectorOrFinder, show) {
-    let elements = [];
+  toggleElement(selectorOrFinder: string | (() => HTMLElement[]), show: boolean): void {
+    let elements: HTMLElement[] = [];
     if (typeof selectorOrFinder === 'function') {
       try {
         elements = selectorOrFinder() || [];
@@ -86,18 +97,18 @@ class UIManager {
       return;
     }
 
-    return toggleElements(elements, show);
+    toggleElements(elements, show);
   }
 
-  findElementsByStructure(options) {
+  findElementsByStructure(options: unknown): HTMLElement[] {
     return findElementsByStructure(options);
   }
 
-  findElementsByClassPattern(pattern, tagName = '*') {
+  findElementsByClassPattern(pattern: string, tagName: string = '*'): HTMLElement[] {
     return findElementsByClassPattern(pattern, tagName);
   }
 
-  customizeControlBar(controlBarConfig) {
+  customizeControlBar(controlBarConfig: { show?: boolean; position?: string; autoHide?: boolean }): void {
     const controlBar = document.querySelector('.video-control-bar');
     if (!controlBar) return;
 
@@ -121,11 +132,9 @@ class UIManager {
           controlBar.style.bottom = '0';
       }
     }
-
-    if (controlBarConfig.autoHide) {}
   }
 
-  customizeDanmaku(danmakuConfig) {
+  customizeDanmaku(danmakuConfig: { fontSize?: number; color?: string; opacity?: number; speed?: string }): void {
     const styleId = 'douyin-danmaku-custom-styles';
     let styleElement = document.getElementById(styleId);
     if (!styleElement) {
@@ -158,7 +167,7 @@ class UIManager {
     styleElement.textContent = css;
   }
 
-  hideSettingsPanel() {
+  hideSettingsPanel(): void {
     if (!this.settingsPanel) return;
     this.isPanelVisible = false;
     this.settingsPanel.style.transition = 'opacity 0.3s ease-out';
@@ -170,12 +179,12 @@ class UIManager {
     }, 300);
   }
 
-  applyLayout(type, layout) {
+  applyLayout(type: string, layout: string): void {
     if (!layout || layout === 'default') return;
     logger.info(`应用${type}布局：${layout}`);
   }
 
-  showSettingsPanel() {
+  showSettingsPanel(): void {
     if (this.settingsPanel) {
       this.settingsPanel.remove();
     }
@@ -185,7 +194,7 @@ class UIManager {
     this.makePanelDraggable(this.settingsPanel);
   }
 
-  createSettingsPanel() {
+  createSettingsPanel(): HTMLElement {
     const panel = createElement('div', {
       className: 'douyin-ui-customizer-panel',
       style: { animation: 'slideIn 0.3s ease-out' }
@@ -198,12 +207,12 @@ class UIManager {
     return panel;
   }
 
-  makePanelDraggable(panel) {
+  makePanelDraggable(panel: HTMLElement): void {
     makePanelDraggable(panel);
     restrictPanelToViewport(panel);
   }
 
-  applyAllCustomizations() {
+  applyAllCustomizations(): void {
     logger.info('[UI定制] 开始统一应用所有UI定制');
     try {
       const pageType = this.detectPageType();
@@ -229,13 +238,13 @@ class UIManager {
     }
   }
 
-  detectPageType() {
+  detectPageType(): string {
     if (document.querySelector('video[autoplay]')) return 'video';
     if (document.querySelector('.live, .live-room, [data-type="live"]')) return 'live';
     return 'other';
   }
 
-  handleScroll(e) {
+  handleScroll(e: Event): void {
     const currentScroll = window.scrollY;
     const direction = currentScroll > this.lastScrollPosition ? 'down' : 'up';
     this.lastScrollPosition = currentScroll;
@@ -247,7 +256,7 @@ class UIManager {
     }
   }
 
-  applyTheme(theme) {
+  applyTheme(theme: string): void {
     try {
       themeManager.applyTheme(theme);
       if (this.settingsPanel) {
@@ -272,7 +281,7 @@ class UIManager {
     }
   }
 
-  saveToLocalStorage(config) {
+  saveToLocalStorage(config: Config): void {
     try {
       localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(config));
       logger.info('配置已保存到localStorage');
@@ -281,9 +290,9 @@ class UIManager {
     }
   }
 
-  saveConfig() {
+  saveConfig(): void {
     try {
-      import('./config.js').then(({ default: configManager }) => {
+      import('./config.ts').then(({ default: configManager }) => {
         configManager.setConfig(this.config);
         logger.info('配置已保存');
       }).catch(error => {
@@ -296,7 +305,7 @@ class UIManager {
     }
   }
 
-  async saveSettings(panel) {
+  async saveSettings(panel: HTMLElement): Promise<void> {
     try {
       const themeRadios = panel.querySelectorAll('input[type="radio"][name="theme"]');
       for (const radio of themeRadios) {
@@ -310,8 +319,8 @@ class UIManager {
       generalSettings.forEach(setting => {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
-          if (!this.config.general) this.config.general = {};
-          this.config.general[setting] = checkbox.checked;
+          if (!this.config.general) this.config.general = {} as Config['general'];
+          (this.config.general as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -319,8 +328,8 @@ class UIManager {
       videoSettings.forEach(setting => {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
-          if (!this.config.videoUI) this.config.videoUI = {};
-          this.config.videoUI[setting] = checkbox.checked;
+          if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
+          (this.config.videoUI as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -328,13 +337,13 @@ class UIManager {
       controlBarSettings.forEach(setting => {
         const element = panel.querySelector(`#${setting}`);
         if (element) {
-          if (!this.config.videoUI) this.config.videoUI = {};
-          if (!this.config.videoUI.controlBar) this.config.videoUI.controlBar = {};
+          if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
+          if (!this.config.videoUI.controlBar) this.config.videoUI.controlBar = {} as Config['videoUI']['controlBar'];
           const controlBarSetting = setting.replace('controlBar-', '');
-          let value = element.value;
-          if (element.type === 'checkbox') value = element.checked;
-          else if (controlBarSetting === 'opacity') value = parseFloat(value);
-          this.config.videoUI.controlBar[controlBarSetting] = value;
+          let value: string | boolean | number = (element as HTMLInputElement).value;
+          if ((element as HTMLInputElement).type === 'checkbox') value = (element as HTMLInputElement).checked;
+          else if (controlBarSetting === 'opacity') value = parseFloat(value as string);
+          (this.config.videoUI.controlBar as Record<string, unknown>)[controlBarSetting] = value;
         }
       });
 
@@ -342,12 +351,12 @@ class UIManager {
       playbackSettings.forEach(setting => {
         const element = panel.querySelector(`#${setting}`);
         if (element) {
-          if (!this.config.videoUI) this.config.videoUI = {};
-          if (!this.config.videoUI.playback) this.config.videoUI.playback = {};
+          if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
+          if (!this.config.videoUI.playback) this.config.videoUI.playback = {} as Config['videoUI']['playback'];
           const playbackSetting = setting.replace('playback-', '');
-          let value = element.value;
-          if (element.type === 'checkbox') value = element.checked;
-          this.config.videoUI.playback[playbackSetting] = value;
+          let value: string | boolean = (element as HTMLInputElement).value;
+          if ((element as HTMLInputElement).type === 'checkbox') value = (element as HTMLInputElement).checked;
+          (this.config.videoUI.playback as Record<string, unknown>)[playbackSetting] = value;
         }
       });
 
@@ -355,9 +364,9 @@ class UIManager {
       liveSettings.forEach(setting => {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
-          if (!this.config.liveUI) this.config.liveUI = {};
+          if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
           const liveSetting = setting.replace('liveShow', 'show');
-          this.config.liveUI[liveSetting] = checkbox.checked;
+          (this.config.liveUI as Record<string, boolean>)[liveSetting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -365,43 +374,43 @@ class UIManager {
       danmakuSettings.forEach(setting => {
         const element = panel.querySelector(`#${setting}`);
         if (element) {
-          if (!this.config.liveUI) this.config.liveUI = {};
-          if (!this.config.liveUI.danmaku) this.config.liveUI.danmaku = {};
+          if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
+          if (!this.config.liveUI.danmaku) this.config.liveUI.danmaku = {} as Config['liveUI']['danmaku'];
           const danmakuSetting = setting.replace('danmaku-', '');
-          let value = element.value;
-          if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') value = parseInt(value);
-          else if (danmakuSetting === 'opacity') value = parseFloat(value);
-          this.config.liveUI.danmaku[danmakuSetting] = value;
+          let value: string | number = (element as HTMLInputElement).value;
+          if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') value = parseInt(value as string);
+          else if (danmakuSetting === 'opacity') value = parseFloat(value as string);
+          (this.config.liveUI.danmaku as Record<string, unknown>)[danmakuSetting] = value;
         }
       });
 
       const liveLayoutSelect = panel.querySelector('#live-layout');
       if (liveLayoutSelect) {
-        if (!this.config.liveUI) this.config.liveUI = {};
-        this.config.liveUI.layout = liveLayoutSelect.value;
+        if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
+        this.config.liveUI.layout = (liveLayoutSelect as HTMLSelectElement).value;
       }
 
       const liveVolumeSlider = panel.querySelector('#live-volume');
       if (liveVolumeSlider) {
-        if (!this.config.liveUI) this.config.liveUI = {};
-        this.config.liveUI.volume = parseInt(liveVolumeSlider.value);
+        if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
+        this.config.liveUI.volume = parseInt((liveVolumeSlider as HTMLInputElement).value);
       }
 
       const debugModeCheckbox = panel.querySelector('#advanced-debugMode');
       const performanceModeCheckbox = panel.querySelector('#advanced-performanceMode');
       const customCSS = panel.querySelector('#advanced-customCSS');
 
-      if (!this.config.advanced) this.config.advanced = {};
-      if (debugModeCheckbox) this.config.advanced.debugMode = debugModeCheckbox.checked;
-      if (performanceModeCheckbox) this.config.advanced.performanceMode = performanceModeCheckbox.checked;
-      if (customCSS) this.config.advanced.customCSS = customCSS.value;
+      if (!this.config.advanced) this.config.advanced = {} as Config['advanced'];
+      if (debugModeCheckbox) this.config.advanced.debugMode = (debugModeCheckbox as HTMLInputElement).checked;
+      if (performanceModeCheckbox) this.config.advanced.performanceMode = (performanceModeCheckbox as HTMLInputElement).checked;
+      if (customCSS) this.config.advanced.customCSS = (customCSS as HTMLTextAreaElement).value;
 
       const scriptItems = panel.querySelectorAll('#custom-scripts-list .script-item input');
-      const customScripts = [];
+      const customScripts: string[] = [];
       let hasScripts = false;
 
       scriptItems.forEach(input => {
-        const value = input.value.trim();
+        const value = (input as HTMLInputElement).value.trim();
         if (value) {
           customScripts.push(value);
           hasScripts = true;
@@ -410,12 +419,12 @@ class UIManager {
 
       if (hasScripts) {
         const confirmed = confirm('警告：自定义脚本可能会带来安全风险，是否继续保存？');
-        if (!confirmed) return false;
+        if (!confirmed) return;
 
         for (const script of customScripts) {
           if (script.includes('eval(') || script.includes('Function(') || script.includes('innerHTML') || script.includes('document.write') || script.includes('execScript')) {
             const scriptConfirmed = confirm('警告：检测到可能的危险代码，是否确认添加此脚本？');
-            if (!scriptConfirmed) return false;
+            if (!scriptConfirmed) return;
           }
 
           if (script.startsWith('http://') || script.startsWith('https://')) {
@@ -425,7 +434,7 @@ class UIManager {
 
             if (!allowedDomains.some(allowedDomain => domain.includes(allowedDomain))) {
               const urlConfirmed = confirm(`警告：脚本URL来自非白名单域名 (${domain})，是否确认添加此脚本？`);
-              if (!urlConfirmed) return false;
+              if (!urlConfirmed) return;
             }
           }
         }
@@ -433,9 +442,9 @@ class UIManager {
 
       this.config.advanced.customScripts = customScripts;
 
-      let validationResult = { valid: true, issues: [] };
+      let validationResult = { valid: true, issues: [] as string[] };
       try {
-        const configModule = await import('./config.js');
+        const configModule = await import('./config.ts');
         const configManager = configModule.default;
         validationResult = configManager.validateConfig(this.config);
       } catch (error) {
@@ -459,8 +468,8 @@ class UIManager {
     }
   }
 
-  basicValidateConfig(config) {
-    const issues = [];
+  basicValidateConfig(config: Config): { valid: boolean; issues: string[] } {
+    const issues: string[] = [];
 
     try {
       if (config.theme && !['light', 'dark'].includes(config.theme)) {
@@ -489,10 +498,10 @@ class UIManager {
       issues.push('配置验证过程中发生错误');
     }
 
-    return { valid: issues.length === 0, issues: issues };
+    return { valid: issues.length === 0, issues };
   }
 
-  init() {
+  init(): void {
     logger.info('[UI管理器] 初始化UI管理器');
     try {
       this.initSettingsPanel();
@@ -503,13 +512,13 @@ class UIManager {
     }
   }
 
-  initUI() {
+  initUI(): void {
     logger.info('[UI管理器] 初始化UI定制');
     this.showToggleButton();
     this.applyAllCustomizations();
   }
 
-  setupEvents() {
+  setupEvents(): void {
     logger.info('[UI管理器] 设置事件监听');
     addEvent(window, 'load', this.debouncedApplyCustomizations);
     addEvent(document, 'DOMContentLoaded', this.debouncedApplyCustomizations);
@@ -522,7 +531,7 @@ class UIManager {
     }
   }
 
-  observeDomChanges() {
+  observeDomChanges(): void {
     const observer = new MutationObserver(this.debouncedApplyCustomizations);
     observer.observe(document.body, {
       childList: true,
@@ -533,7 +542,7 @@ class UIManager {
     this.domObserver = observer;
   }
 
-  cleanup() {
+  cleanup(): void {
     logger.info('[UI管理器] 清理资源和事件监听');
     if (this.domObserver) {
       this.domObserver.disconnect();
@@ -553,7 +562,7 @@ class UIManager {
     }
   }
 
-  initSettingsPanel() {
+  initSettingsPanel(): void {
     this.settingsPanel = document.createElement('div');
     this.settingsPanel.id = 'douyin-customizer-panel';
     this.settingsPanel.className = 'customizer-panel';
@@ -594,7 +603,7 @@ class UIManager {
     closeButton.style.lineHeight = '1';
     closeButton.textContent = '×';
     closeButton.addEventListener('click', () => {
-      this.settingsPanel.style.display = 'none';
+      this.settingsPanel!.style.display = 'none';
       this.showToggleButton();
     });
 
@@ -647,7 +656,7 @@ class UIManager {
         tabNavigation.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
         tabContent.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
         button.classList.add('active');
-        tabContent.querySelector(`#${tabId}-tab`).classList.add('active');
+        tabContent.querySelector(`#${tabId}-tab`)?.classList.add('active');
       });
     });
 
@@ -656,12 +665,12 @@ class UIManager {
     logger.info('Settings panel initialized');
   }
 
-  restrictPanelToViewport(panel) {
+  restrictPanelToViewport(panel: HTMLElement): void {
     restrictPanelToViewport(panel);
   }
 
-  showToggleButton() {
-    let toggleButton = document.getElementById('douyin-customizer-toggle');
+  showToggleButton(): void {
+    let toggleButton = document.getElementById('douyin-customizer-toggle') as HTMLButtonElement;
     if (!toggleButton) {
       toggleButton = document.createElement('button');
       toggleButton.id = 'douyin-customizer-toggle';
@@ -689,7 +698,7 @@ class UIManager {
 
     toggleButton.style.display = 'flex';
     toggleButton.addEventListener('click', () => {
-      this.settingsPanel.style.display = 'block';
+      this.settingsPanel!.style.display = 'block';
       toggleButton.style.display = 'none';
     });
   }

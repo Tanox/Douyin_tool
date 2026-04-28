@@ -1,5 +1,5 @@
 /**
- * DOM工具函数测试
+ * test/utils/dom.test.ts - DOM工具函数测试（TypeScript迁移中）
  */
 
 import {

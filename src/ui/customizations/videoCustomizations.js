@@ -1,4 +1,4 @@
-// src/ui/customizations/videoCustomizations.js
+// src/ui/customizations/videoCustomizations.ts - 视频界面定制（TypeScript迁移中）
 
 import { findElementsByClassPattern, findElementsByStructure, toggleElements } from '../../utils/dom.js';
 import logger from '../../utils/logger.js';

@@ -1,4 +1,4 @@
-// src/utils/styleGenerator.js
+// src/utils/styleGenerator.ts - 样式生成工具（TypeScript迁移中）
 
 import { injectStyle } from './dom.js';
 import logger from './logger.js';

@@ -1,4 +1,4 @@
-// src/ui/panels/settingsPanel.js
+// src/ui/panels/settingsPanel.ts - 设置面板组件（TypeScript迁移中）
 
 import { createElement, injectStyle } from '../../utils/dom.js';
 import logger from '../../utils/logger.js';

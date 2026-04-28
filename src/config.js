@@ -1,4 +1,4 @@
-// 配置管理模块 v2.0.1 - 负责处理配置的加载、保存和默认设置
+// src/config.ts - 配置管理模块 v2.0.1（TypeScript迁移中）
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.ts';
 import logger from './utils/logger.ts';

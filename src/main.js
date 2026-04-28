@@ -14,8 +14,7 @@
 // ==/UserScript==
 
 /**
- * src/main.js
- * 抖音Web端界面UI定制工具主入口
+ * src/main.ts - 抖音Web端界面UI定制工具主入口（TypeScript迁移中）
  * 作者：SutChan
  * 版本：2.0.1
  * 更新日期：2026-04-27

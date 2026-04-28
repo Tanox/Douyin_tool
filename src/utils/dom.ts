@@ -5,6 +5,37 @@ import { isDOMCacheEntry } from '../types/index.js';
 const domCache = new Map<string, DOMCacheEntry>();
 const cacheExpiry = 5000;
 
+// 开发模式检测：通过 URL 参数或本地存储控制
+const isDevMode = ((): boolean => {
+  try {
+    // 检查 URL 参数
+    if (typeof window !== 'undefined' && window.location) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('douyin_tool_debug') === 'true') {
+        return true;
+      }
+    }
+    // 检查本地存储（UserScript 环境）
+    const debugFlag = localStorage.getItem('douyin_tool_debug_mode');
+    return debugFlag === 'true';
+  } catch {
+    return false;
+  }
+})();
+
+// 轻量级缓存条目验证（生产环境使用）
+function isValidCacheEntry(entry: unknown): entry is DOMCacheEntry {
+  if (typeof entry !== 'object' || entry === null) {
+    return false;
+  }
+  const e = entry as Record<string, unknown>;
+  // 仅检查必要的 timestamp 字段
+  return typeof e.timestamp === 'number';
+}
+
+// 根据环境选择验证函数
+const validateCacheEntry = isDevMode ? isDOMCacheEntry : isValidCacheEntry;
+
 function generateCacheKey(selector: string | RegExp, parent: HTMLElement | Document = document): string {
   const selectorStr = typeof selector === 'string' ? selector : selector.toString();
   const parentStr = parent === document ? 'document' : parent.id || parent.className || parent.tagName;
@@ -57,8 +88,10 @@ export function getElement(selector: string, parent: HTMLElement | Document = do
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.element as HTMLElement | null;
@@ -85,8 +118,10 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.elements || [];
@@ -113,8 +148,10 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.elements || [];
@@ -164,8 +201,10 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.elements || [];

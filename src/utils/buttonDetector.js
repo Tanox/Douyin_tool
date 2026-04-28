@@ -1,4 +1,4 @@
-// src/utils/buttonDetector.js
+// src/utils/buttonDetector.ts - 按钮检测工具（TypeScript迁移中）
 
 import { getElement, getElements, findElementsByStructure } from './dom.js';
 import logger from './logger.js';

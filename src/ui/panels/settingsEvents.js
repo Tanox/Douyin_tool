@@ -1,4 +1,4 @@
-// src/ui/panels/settingsEvents.js
+// src/ui/panels/settingsEvents.ts - 设置面板事件处理（TypeScript迁移中）
 
 import logger from '../../utils/logger.js';
 import eventEmitter from '../../utils/eventEmitter.js';

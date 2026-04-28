@@ -1,4 +1,4 @@
-// src/utils/pageObserver.js
+// src/utils/pageObserver.ts - 页面变化监听工具（TypeScript迁移中）
 
 import { debounce } from './dom.js';
 import logger from './logger.js';
