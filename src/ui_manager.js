@@ -1,4 +1,4 @@
-// src/ui_manager.js v1.1.1
+// src/ui_manager.js v2.0.0
 
 import {
   debounce,

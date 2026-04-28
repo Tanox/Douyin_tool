@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音Web端界面UI定制工具
 // @namespace    https://github.com/sutchan
-// @version      1.1.1
+// @version      2.0.0
 // @description  自定义抖音Web端界面，隐藏不需要的UI元素，提升观看体验
 // @author       Sut (@sutchan)
 // @match        https://www.douyin.com/*
@@ -18,7 +18,7 @@
 // @downloadURL
 // ==/UserScript==
 
-// 配置管理模块 v1.1.1 - 负责处理配置的加载、保存和默认设置
+// 配置管理模块 v2.0.0 - 负责处理配置的加载、保存和默认设置
 
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.js';
 import logger from './utils/logger.js';
@@ -31,7 +31,7 @@ const configStorage = new NamespacedStorage('douyin_tool_config');
 const CONFIG_KEY = 'main';
 
 // 配置版本，用于配置迁移
-const CONFIG_VERSION = '1.1.1';
+const CONFIG_VERSION = '2.0.0';
 
 /**
  * 默认配置
@@ -3312,7 +3312,7 @@ const themeManager = new ThemeManager();
 export { ThemeManager };
 export default themeManager;
 
-// src/ui_manager.js v1.1.1
+// src/ui_manager.js v2.0.0
 
 import {
   debounce,
@@ -4015,7 +4015,7 @@ export default UIManager;
 // ==UserScript==
 // @name         抖音网页版UI定制工具
 // @namespace    http://tampermonkey.net/
-// @version 1.1.1
+// @version 2.0.0
 // @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
 // @author       SutChan
 // @match        *://*.douyin.com/*
@@ -4031,7 +4031,7 @@ export default UIManager;
  * src/main.js
  * 抖音Web端界面UI定制工具主入口
  * 作者：SutChan
- * 版本：1.1.1
+ * 版本：2.0.0
  * 更新日期：2026-04-27
  */
 
@@ -4046,7 +4046,7 @@ import themeManager from './styles/theme.js';
 import { injectStyles, injectBasicStyles } from './utils/styleGenerator.js';
 import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.js';
 
-const CURRENT_VERSION = '1.1.1';
+const CURRENT_VERSION = '2.0.0';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');

@@ -4,7 +4,7 @@
 
 - **项目名称**: 抖音UI定制器
 - **项目署名**: Sut
-- **项目版本**: 1.1.1
+- **项目版本**: 2.0.0
 - **基础 URL**: <https://github.com/sutchan/douyin_tool>
 
 ## 2. 技术栈
@@ -254,7 +254,7 @@
 
 ```javascript
 {
-  version: '1.1.1',
+  version: '2.0.0',
   theme: 'light',
   videoUI: {
     showLikeButton: true,
