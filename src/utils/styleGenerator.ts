@@ -1,10 +1,9 @@
-// src/utils/styleGenerator.ts - 样式生成工具（TypeScript迁移中）
+import { injectStyle } from './dom.ts';
+import logger from './logger.ts';
+import eventEmitter from './eventEmitter.ts';
+import type { Config } from '../config.ts';
 
-import { injectStyle } from './dom.js';
-import logger from './logger.js';
-import eventEmitter from './eventEmitter.js';
-
-export function generateCustomStyles(config) {
+export function generateCustomStyles(config: Config): string {
   let customCSS = '';
 
   customCSS += `
@@ -38,7 +37,6 @@ export function generateCustomStyles(config) {
     if (!config.videoUI.showDescription) {
       customCSS += '.video-desc, .description, .video-content { display: none !important; }';
     }
-    if (config.videoUI.layout) {}
   }
 
   if (config.liveUI) {
@@ -81,7 +79,7 @@ export function generateCustomStyles(config) {
   return customCSS;
 }
 
-export async function injectStyles(themeManager, config) {
+export async function injectStyles(themeManager: { applyTheme: (theme: string) => Promise<boolean> }, config: Config): Promise<void> {
   try {
     const success = await themeManager.applyTheme(config.theme);
     if (!success) {
@@ -109,7 +107,7 @@ export async function injectStyles(themeManager, config) {
   }
 }
 
-export function injectBasicStyles() {
+export function injectBasicStyles(): void {
   const basicStyles = `
     .douyin-ui-customizer-panel {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

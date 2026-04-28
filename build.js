@@ -75,20 +75,29 @@ function buildUserScript() {
 `;
 
     const files = [
-      'src/config.js',
-      'src/utils/index.js',
+      'src/config.ts',
+      'src/utils/index.ts',
       'src/utils/dom.ts',
       'src/utils/logger.ts',
       'src/utils/storage.ts',
       'src/utils/eventEmitter.ts',
       'src/utils/autoExecutor.ts',
       'src/utils/performance.ts',
-      'src/controllers/elementController.js',
-      'src/controllers/layoutController.js',
-      'src/styles/index.js',
-      'src/styles/theme.js',
-      'src/ui_manager.js',
-      'src/main.js'
+      'src/utils/buttonDetector.ts',
+      'src/utils/pageObserver.ts',
+      'src/utils/styleGenerator.ts',
+      'src/controllers/elementController.ts',
+      'src/controllers/layoutController.ts',
+      'src/styles/index.ts',
+      'src/styles/theme.ts',
+      'src/ui/index.ts',
+      'src/ui/core/panelDrag.ts',
+      'src/ui/panels/settingsPanel.ts',
+      'src/ui/panels/settingsEvents.ts',
+      'src/ui/customizations/videoCustomizations.ts',
+      'src/ui/customizations/liveCustomizations.ts',
+      'src/ui_manager.ts',
+      'src/main.ts'
     ];
 
     let scriptContent = metadata;
@@ -98,6 +107,7 @@ function buildUserScript() {
         let content = fs.readFileSync(resolvedPath, 'utf-8');
         content = content.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'");
         content = content.replace(/from '\.\.\/(\w+)\.ts'/g, "from '../$1.js'");
+        content = content.replace(/from '\.\.\/\.\.\/(\w+)\.ts'/g, "from '../../$1.js'");
         scriptContent += content + '\n\n';
       } else {
         console.warn(`File not found: ${file}`);
