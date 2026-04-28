@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音Web端界面UI定制工具
 // @namespace    https://github.com/sutchan
-// @version      2.0.1
+// @version      2.0.2
 // @description  自定义抖音Web端界面，隐藏不需要的UI元素，提升观看体验
 // @author       Sut (@sutchan)
 // @match        https://www.douyin.com/*
@@ -25,7 +25,7 @@ import eventEmitter from './utils/eventEmitter.ts';
 const configStorage = new NamespacedStorage('douyin_tool_config');
 
 const CONFIG_KEY = 'main';
-const CONFIG_VERSION = '2.0.1';
+const CONFIG_VERSION = '2.0.2';
 
 interface DanmakuConfig {
   fontSize: number;
@@ -5446,7 +5446,7 @@ import themeManager from './styles/theme.ts';
 import { injectStyles, injectBasicStyles } from './utils/styleGenerator.ts';
 import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.ts';
 
-const CURRENT_VERSION = '2.0.1';
+const CURRENT_VERSION = '2.0.2';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');
