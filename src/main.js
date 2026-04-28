@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         抖音网页版UI定制工具
 // @namespace    http://tampermonkey.net/
-// @version 2.0.0
+// @version 2.0.1
 // @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
 // @author       SutChan
 // @match        *://*.douyin.com/*
@@ -17,7 +17,7 @@
  * src/main.js
  * 抖音Web端界面UI定制工具主入口
  * 作者：SutChan
- * 版本：2.0.0
+ * 版本：2.0.1
  * 更新日期：2026-04-27
  */
 
@@ -32,7 +32,7 @@ import themeManager from './styles/theme.js';
 import { injectStyles, injectBasicStyles } from './utils/styleGenerator.js';
 import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.js';
 
-const CURRENT_VERSION = '2.0.0';
+const CURRENT_VERSION = '2.0.1';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');
