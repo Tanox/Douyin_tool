@@ -106,11 +106,28 @@ function initImportExport(panel, uiManager) {
           }
         }).catch(error => {
           logger.error('导入配置管理模块失败:', error);
-          const newConfig = JSON.parse(importConfig.value);
-          uiManager.config = newConfig;
-          uiManager.saveConfig();
-          alert('配置导入成功');
-          location.reload();
+          try {
+            const newConfig = JSON.parse(importConfig.value);
+            if (configManager && typeof configManager.validateConfig === 'function') {
+              const validationResult = configManager.validateConfig(newConfig);
+              if (validationResult.valid) {
+                uiManager.config = newConfig;
+                uiManager.saveConfig();
+                alert('配置导入成功');
+                location.reload();
+              } else {
+                alert('配置格式验证失败: ' + validationResult.issues.join('\n'));
+              }
+            } else {
+              uiManager.config = newConfig;
+              uiManager.saveConfig();
+              alert('配置导入成功（跳过验证）');
+              location.reload();
+            }
+          } catch (parseError) {
+            logger.error('JSON解析失败:', parseError);
+            alert('JSON格式错误，请检查配置内容');
+          }
         });
       } catch (error) {
         logger.error('导入配置失败:', error);

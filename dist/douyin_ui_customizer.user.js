@@ -554,30 +554,19 @@ export const utils = {
 
 export default utils;
 
-// src/utils/dom.js
-
 import logger from './logger.js';
+import type { DOMCacheEntry, ElementStructure, BatchUpdateCallback } from '../types/index.js';
 
-// DOM查询缓存
-const domCache = new Map();
-const cacheExpiry = 5000; // 缓存过期时间（毫秒）
+const domCache = new Map<string, DOMCacheEntry>();
+const cacheExpiry = 5000;
 
-/**
- * 生成缓存键
- * @param {string|RegExp} selector - 选择器或正则表达式
- * @param {HTMLElement} parent - 父元素
- * @returns {string} 缓存键
- */
-function generateCacheKey(selector, parent = document) {
+function generateCacheKey(selector: string | RegExp, parent: HTMLElement | Document = document): string {
   const selectorStr = typeof selector === 'string' ? selector : selector.toString();
   const parentStr = parent === document ? 'document' : parent.id || parent.className || parent.tagName;
   return `${selectorStr}_${parentStr}`;
 }
 
-/**
- * 清理过期缓存
- */
-function cleanupCache() {
+function cleanupCache(): void {
   const now = Date.now();
   for (const [key, { timestamp }] of domCache.entries()) {
     if (now - timestamp > cacheExpiry) {
@@ -586,77 +575,53 @@ function cleanupCache() {
   }
 }
 
-// 定期清理缓存
-let cleanupInterval = setInterval(cleanupCache, cacheExpiry * 2);
+let cleanupInterval: ReturnType<typeof setInterval> = setInterval(cleanupCache, cacheExpiry * 2);
 
-/**
- * 清理模块资源
- */
-export function cleanup() {
+export function cleanup(): void {
   clearInterval(cleanupInterval);
   clearDomCache();
   logger.info('DOM工具模块已清理');
 }
 
-/**
- * 防抖函数
- * @param {Function} func - 要防抖的函数
- * @param {number} wait - 等待时间（毫秒）
- * @returns {Function} 防抖后的函数
- */
-export function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
+export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number): T {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  return function executedFunction(this: unknown, ...args: unknown[]) {
     const later = () => {
       clearTimeout(timeout);
-      func(...args);
+      func.apply(this, args);
     };
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
-  };
+  } as T;
 }
 
-/**
- * 节流函数
- * @param {Function} func - 要节流的函数
- * @param {number} limit - 时间限制（毫秒）
- * @returns {Function} 节流后的函数
- */
-export function throttle(func, limit) {
-  let inThrottle;
-  return function(...args) {
+export function throttle<T extends (...args: unknown[]) => void>(func: T, limit: number): T {
+  let inThrottle = false;
+  return function (this: unknown, ...args: unknown[]) {
     if (!inThrottle) {
       func.apply(this, args);
       inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
+      setTimeout(() => { inThrottle = false; }, limit);
     }
-  };
+  } as T;
 }
 
-/**
- * 安全地获取DOM元素
- * @param {string} selector - CSS选择器
- * @param {HTMLElement} parent - 父元素，默认为document
- * @returns {HTMLElement|null} DOM元素或null
- */
-export function getElement(selector, parent = document) {
+export function getElement(selector: string, parent: HTMLElement | Document = document): HTMLElement | null {
   try {
     const cacheKey = generateCacheKey(selector, parent);
-    
-    // 检查缓存
+
     if (domCache.has(cacheKey)) {
-      const { element } = domCache.get(cacheKey);
-      return element;
+      const { element } = domCache.get(cacheKey)!;
+      return element as HTMLElement | null;
     }
-    
-    const element = parent.querySelector(selector);
-    
-    // 存入缓存
+
+    const element = parent.querySelector<HTMLElement>(selector);
+
     domCache.set(cacheKey, {
-      element,
+      element: element as Element | null,
       timestamp: Date.now()
     });
-    
+
     return element;
   } catch (error) {
     logger.error(`获取元素失败 (${selector}):`, error);
@@ -664,30 +629,22 @@ export function getElement(selector, parent = document) {
   }
 }
 
-/**
- * 安全地获取多个DOM元素
- * @param {string} selector - CSS选择器
- * @param {HTMLElement} parent - 父元素，默认为document
- * @returns {HTMLElement[]} DOM元素数组
- */
-export function getElements(selector, parent = document) {
+export function getElements(selector: string, parent: HTMLElement | Document = document): HTMLElement[] {
   try {
     const cacheKey = generateCacheKey(selector, parent);
-    
-    // 检查缓存
+
     if (domCache.has(cacheKey)) {
-      const { elements } = domCache.get(cacheKey);
-      return elements;
+      const entry = domCache.get(cacheKey)!;
+      return (entry as unknown as { elements: HTMLElement[] }).elements;
     }
-    
-    const elements = Array.from(parent.querySelectorAll(selector));
-    
-    // 存入缓存
+
+    const elements = Array.from(parent.querySelectorAll<HTMLElement>(selector));
+
     domCache.set(cacheKey, {
       elements,
       timestamp: Date.now()
-    });
-    
+    } as unknown as DOMCacheEntry);
+
     return elements;
   } catch (error) {
     logger.error(`获取多个元素失败 (${selector}):`, error);
@@ -695,57 +652,45 @@ export function getElements(selector, parent = document) {
   }
 }
 
-/**
- * 通过类名模式查找元素
- * @param {RegExp} pattern - 类名正则表达式
- * @param {HTMLElement} parent - 父元素，默认为document
- * @returns {HTMLElement[]} 匹配的元素数组
- */
-export function findElementsByClassPattern(pattern, parent = document) {
+export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement | Document = document): HTMLElement[] {
   try {
     const cacheKey = generateCacheKey(pattern, parent);
-    
-    // 检查缓存
+
     if (domCache.has(cacheKey)) {
-      const { elements } = domCache.get(cacheKey);
-      return elements;
+      const entry = domCache.get(cacheKey)!;
+      return (entry as unknown as { elements: HTMLElement[] }).elements;
     }
-    
-    const elements = [];
-    
-    // 尝试使用CSS选择器（如果模式简单）
+
+    const elements: HTMLElement[] = [];
+
     const patternStr = pattern.toString().replace(/^\/|\/$/g, '');
     if (!patternStr.includes('|') && !patternStr.includes('*') && !patternStr.includes('+') && !patternStr.includes('?')) {
       try {
         const selector = `.${patternStr}`;
         const cssElements = getElements(selector, parent);
         if (cssElements.length > 0) {
-          // 存入缓存
           domCache.set(cacheKey, {
             elements: cssElements,
             timestamp: Date.now()
-          });
+          } as unknown as DOMCacheEntry);
           return cssElements;
         }
-      } catch (e) {
-        // CSS选择器失败，回退到原始方法
+      } catch {
       }
     }
-    
-    // 回退到原始方法（优化版本）
-    const allElements = parent.querySelectorAll('[class]');
+
+    const allElements = parent.querySelectorAll<HTMLElement>('[class]');
     allElements.forEach(element => {
       if (pattern.test(element.className)) {
         elements.push(element);
       }
     });
-    
-    // 存入缓存
+
     domCache.set(cacheKey, {
       elements,
       timestamp: Date.now()
-    });
-    
+    } as unknown as DOMCacheEntry);
+
     return elements;
   } catch (error) {
     logger.error('通过类名模式查找元素失败:', error);
@@ -753,32 +698,24 @@ export function findElementsByClassPattern(pattern, parent = document) {
   }
 }
 
-/**
- * 通过结构特征查找元素
- * @param {Object} options - 结构选项
- * @param {HTMLElement} parent - 父元素，默认为document
- * @returns {HTMLElement[]} 匹配的元素数组
- */
-export function findElementsByStructure(options, parent = document) {
+export function findElementsByStructure(options: ElementStructure, parent: HTMLElement | Document = document): HTMLElement[] {
   try {
     const cacheKey = generateCacheKey(JSON.stringify(options), parent);
-    
-    // 检查缓存
+
     if (domCache.has(cacheKey)) {
-      const { elements } = domCache.get(cacheKey);
-      return elements;
+      const entry = domCache.get(cacheKey)!;
+      return (entry as unknown as { elements: HTMLElement[] }).elements;
     }
-    
-    const result = [];
-    const candidates = options.tagName 
+
+    const result: HTMLElement[] = [];
+    const candidates = options.tagName
       ? parent.getElementsByTagName(options.tagName)
       : parent.getElementsByTagName('*');
-    
+
     for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i];
+      const candidate = candidates[i] as HTMLElement;
       let match = true;
-      
-      // 检查属性
+
       if (options.attributes) {
         for (const [attr, value] of Object.entries(options.attributes)) {
           if (candidate.getAttribute(attr) !== value) {
@@ -787,40 +724,38 @@ export function findElementsByStructure(options, parent = document) {
           }
         }
       }
-      
-      // 检查子元素
+
       if (match && options.children) {
         match = options.children.every((childOption, index) => {
           const child = candidate.children[index];
           if (!child) return false;
-          
+
           if (childOption.tagName && child.tagName.toLowerCase() !== childOption.tagName.toLowerCase()) {
             return false;
           }
-          
+
           if (childOption.attributes) {
             for (const [attr, value] of Object.entries(childOption.attributes)) {
-              if (child.getAttribute(attr) !== value) {
+              if ((child as HTMLElement).getAttribute(attr) !== value) {
                 return false;
               }
             }
           }
-          
+
           return true;
         });
       }
-      
+
       if (match) {
         result.push(candidate);
       }
     }
-    
-    // 存入缓存
+
     domCache.set(cacheKey, {
       elements: result,
       timestamp: Date.now()
-    });
-    
+    } as unknown as DOMCacheEntry);
+
     return result;
   } catch (error) {
     logger.error('通过结构查找元素失败:', error);
@@ -828,12 +763,7 @@ export function findElementsByStructure(options, parent = document) {
   }
 }
 
-/**
- * 批量DOM更新
- * @param {Function} callback - 包含DOM操作的回调函数
- * @param {HTMLElement} container - 容器元素，默认为document.body
- */
-export function batchUpdate(callback, container = document.body) {
+export function batchUpdate(callback: BatchUpdateCallback, container: HTMLElement = document.body): void {
   try {
     const fragment = document.createDocumentFragment();
     callback(fragment);
@@ -843,37 +773,24 @@ export function batchUpdate(callback, container = document.body) {
   }
 }
 
-/**
- * 切换元素显示/隐藏
- * @param {HTMLElement|HTMLElement[]} elements - 要切换的元素或元素数组
- * @param {boolean} show - 是否显示
- */
-export function toggleElements(elements, show) {
+export function toggleElements(elements: HTMLElement | HTMLElement[], show: boolean): void {
   try {
     const elementArray = Array.isArray(elements) ? elements : [elements];
-    
-    // 使用批量更新
-    batchUpdate((fragment) => {
-      elementArray.forEach(element => {
-        if (element && element.style) {
-          element.style.display = show ? '' : 'none';
-        }
-      });
+
+    elementArray.forEach(element => {
+      if (element && element.style) {
+        element.style.display = show ? '' : 'none';
+      }
     });
   } catch (error) {
     logger.error('切换元素显示状态失败:', error);
   }
 }
 
-/**
- * 添加CSS类到元素
- * @param {HTMLElement} element - 目标元素
- * @param {string|string[]} className - 要添加的类名
- */
-export function addClass(element, className) {
+export function addClass(element: HTMLElement, className: string | string[]): void {
   try {
     if (!element || !element.classList) return;
-    
+
     const classNames = Array.isArray(className) ? className : [className];
     classNames.forEach(cls => {
       if (cls) element.classList.add(cls);
@@ -883,15 +800,10 @@ export function addClass(element, className) {
   }
 }
 
-/**
- * 从元素移除CSS类
- * @param {HTMLElement} element - 目标元素
- * @param {string|string[]} className - 要移除的类名
- */
-export function removeClass(element, className) {
+export function removeClass(element: HTMLElement, className: string | string[]): void {
   try {
     if (!element || !element.classList) return;
-    
+
     const classNames = Array.isArray(className) ? className : [className];
     classNames.forEach(cls => {
       if (cls) element.classList.remove(cls);
@@ -901,14 +813,12 @@ export function removeClass(element, className) {
   }
 }
 
-/**
- * 安全地添加事件监听器
- * @param {HTMLElement} element - 目标元素
- * @param {string} eventType - 事件类型
- * @param {Function} handler - 事件处理函数
- * @param {Object} options - 事件选项
- */
-export function addEvent(element, eventType, handler, options = {}) {
+export function addEvent<K extends keyof HTMLElementEventMap>(
+  element: HTMLElement,
+  eventType: K,
+  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void,
+  options?: AddEventListenerOptions
+): void {
   try {
     if (element && element.addEventListener) {
       element.addEventListener(eventType, handler, options);
@@ -918,14 +828,12 @@ export function addEvent(element, eventType, handler, options = {}) {
   }
 }
 
-/**
- * 安全地移除事件监听器
- * @param {HTMLElement} element - 目标元素
- * @param {string} eventType - 事件类型
- * @param {Function} handler - 事件处理函数
- * @param {Object} options - 事件选项
- */
-export function removeEvent(element, eventType, handler, options = {}) {
+export function removeEvent<K extends keyof HTMLElementEventMap>(
+  element: HTMLElement,
+  eventType: K,
+  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void,
+  options?: EventListenerOptions
+): void {
   try {
     if (element && element.removeEventListener) {
       element.removeEventListener(eventType, handler, options);
@@ -935,17 +843,15 @@ export function removeEvent(element, eventType, handler, options = {}) {
   }
 }
 
-/**
- * 事件委托
- * @param {HTMLElement} parent - 父元素
- * @param {string} eventType - 事件类型
- * @param {string} selector - 目标元素选择器
- * @param {Function} handler - 事件处理函数
- */
-export function delegateEvent(parent, eventType, selector, handler) {
+export function delegateEvent<K extends keyof HTMLElementEventMap>(
+  parent: HTMLElement,
+  eventType: K,
+  selector: string,
+  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void
+): void {
   try {
     parent.addEventListener(eventType, (e) => {
-      const target = e.target.closest(selector);
+      const target = e.target.closest<HTMLElement>(selector);
       if (target) {
         handler.call(target, e);
       }
@@ -955,29 +861,24 @@ export function delegateEvent(parent, eventType, selector, handler) {
   }
 }
 
-/**
- * 创建新元素
- * @param {string} tagName - 标签名
- * @param {Object} attributes - 属性对象
- * @param {HTMLElement[]} children - 子元素数组
- * @returns {HTMLElement} 创建的元素
- */
-export function createElement(tagName, attributes = {}, children = []) {
+export function createElement(
+  tagName: string,
+  attributes: Record<string, unknown> = {},
+  children: (HTMLElement | string)[] = []
+): HTMLElement {
   try {
-    const element = document.createElement(tagName);
-    
-    // 设置属性
+    const element = document.createElement(tagName) as HTMLElement;
+
     for (const [key, value] of Object.entries(attributes)) {
-      if (key === 'style' && typeof value === 'object') {
+      if (key === 'style' && typeof value === 'object' && value !== null) {
         Object.assign(element.style, value);
       } else if (key === 'className' && typeof value === 'string') {
         element.className = value;
-      } else {
+      } else if (typeof value === 'string') {
         element.setAttribute(key, value);
       }
     }
-    
-    // 添加子元素
+
     children.forEach(child => {
       if (typeof child === 'string') {
         element.appendChild(document.createTextNode(child));
@@ -985,20 +886,15 @@ export function createElement(tagName, attributes = {}, children = []) {
         element.appendChild(child);
       }
     });
-    
+
     return element;
   } catch (error) {
     logger.error(`创建元素失败 (${tagName}):`, error);
-    return document.createElement(tagName);
+    return document.createElement(tagName) as HTMLElement;
   }
 }
 
-/**
- * 注入样式到页面
- * @param {string} css - CSS样式字符串
- * @returns {HTMLStyleElement} 样式元素
- */
-export function injectStyle(css) {
+export function injectStyle(css: string): HTMLStyleElement | null {
   try {
     const styleElement = document.createElement('style');
     styleElement.type = 'text/css';
@@ -1011,225 +907,150 @@ export function injectStyle(css) {
   }
 }
 
-/**
- * 清理DOM缓存
- */
-export function clearDomCache() {
+export function clearDomCache(): void {
   domCache.clear();
   logger.info('DOM缓存已清理');
 }
 
-// src/utils/logger.js
+import type { LoggerOptions, LogEntry } from '../types/index.js';
 
 class Logger {
-  /**
-   * 构造函数
-   * @param {Object} options - 配置选项
-   * @param {string} options.prefix - 日志前缀
-   * @param {boolean} options.enableDebug - 是否启用调试日志
-   * @param {boolean} options.enableInfo - 是否启用信息日志
-   * @param {boolean} options.enableWarn - 是否启用警告日志
-   * @param {boolean} options.enableError - 是否启用错误日志
-   * @param {number} options.maxHistorySize - 最大历史记录条数
-   */
-  constructor(options = {}) {
+  private prefix: string;
+  private enableDebug: boolean;
+  private enableInfo: boolean;
+  private enableWarn: boolean;
+  private enableError: boolean;
+  private logHistory: LogEntry[];
+  private maxHistorySize: number;
+
+  constructor(options: LoggerOptions = {}) {
     this.prefix = options.prefix || '[抖音UI定制工具]';
-    this.enableDebug = options.enableDebug !== false; // 默认启用
-    this.enableInfo = options.enableInfo !== false;   // 默认启用
-    this.enableWarn = options.enableWarn !== false;   // 默认启用
-    this.enableError = options.enableError !== false; // 默认启用
+    this.enableDebug = options.enableDebug !== false;
+    this.enableInfo = options.enableInfo !== false;
+    this.enableWarn = options.enableWarn !== false;
+    this.enableError = options.enableError !== false;
     this.logHistory = [];
-    this.maxHistorySize = options.maxHistorySize || 100; // 最大历史记录条数
+    this.maxHistorySize = options.maxHistorySize || 100;
   }
 
-  /**
-   * 格式化日志消息
-   * @param {string} level - 日志级别
-   * @param {*} args - 日志参数
-   * @returns {string} 格式化后的日志消息
-   */
-  _formatMessage(level, ...args) {
+  private _formatMessage(level: string, ...args: unknown[]): string {
     const timestamp = new Date().toLocaleTimeString();
     const formattedArgs = args.map(arg => {
       if (typeof arg === 'object' && arg !== null) {
         try {
           return JSON.stringify(arg, null, 2);
-        } catch (e) {
+        } catch {
           return String(arg);
         }
       }
       return String(arg);
     }).join(' ');
-    
+
     return `[${timestamp}] ${this.prefix} [${level}] ${formattedArgs}`;
   }
 
-  /**
-   * 记录日志到历史记录
-   * @param {string} level - 日志级别
-   * @param {string} message - 日志消息
-   */
-  _addToHistory(level, message) {
+  private _addToHistory(level: LogEntry['level'], message: string): void {
     this.logHistory.push({
       timestamp: Date.now(),
       level,
       message
     });
-    
-    // 限制历史记录大小
+
     if (this.logHistory.length > this.maxHistorySize) {
       this.logHistory.shift();
     }
   }
 
-  /**
-   * 调试日志
-   * @param {...*} args - 日志参数
-   */
-  debug(...args) {
+  debug(...args: unknown[]): void {
     if (!this.enableDebug) return;
     const message = this._formatMessage('DEBUG', ...args);
     console.debug(message);
     this._addToHistory('DEBUG', message);
   }
 
-  /**
-   * 信息日志
-   * @param {...*} args - 日志参数
-   */
-  info(...args) {
+  info(...args: unknown[]): void {
     if (!this.enableInfo) return;
     const message = this._formatMessage('INFO', ...args);
     console.info(message);
     this._addToHistory('INFO', message);
   }
 
-  /**
-   * 警告日志
-   * @param {...*} args - 日志参数
-   */
-  warn(...args) {
+  warn(...args: unknown[]): void {
     if (!this.enableWarn) return;
     const message = this._formatMessage('WARN', ...args);
     console.warn(message);
     this._addToHistory('WARN', message);
   }
 
-  /**
-   * 错误日志
-   * @param {...*} args - 日志参数
-   */
-  error(...args) {
+  error(...args: unknown[]): void {
     if (!this.enableError) return;
     const message = this._formatMessage('ERROR', ...args);
     console.error(message);
     this._addToHistory('ERROR', message);
   }
 
-  /**
-   * 设置日志级别
-   * @param {Object} options - 日志级别配置
-   */
-  setLevel(options) {
-    this.enableDebug = options.debug !== false;
-    this.enableInfo = options.info !== false;
-    this.enableWarn = options.warn !== false;
-    this.enableError = options.error !== false;
+  setLevel(options: Partial<Pick<LoggerOptions, 'enableDebug' | 'enableInfo' | 'enableWarn' | 'enableError'>>): void {
+    this.enableDebug = options.enableDebug !== false;
+    this.enableInfo = options.enableInfo !== false;
+    this.enableWarn = options.enableWarn !== false;
+    this.enableError = options.enableError !== false;
     this.debug('日志级别已更新:', options);
   }
 
-  /**
-   * 获取日志历史
-   * @param {number} limit - 返回的最大条数
-   * @returns {Array} 日志历史记录
-   */
-  getHistory(limit = this.logHistory.length) {
+  getHistory(limit: number = this.logHistory.length): LogEntry[] {
     return this.logHistory.slice(-limit);
   }
 
-  /**
-   * 清空日志历史
-   */
-  clearHistory() {
+  clearHistory(): void {
     this.logHistory = [];
     this.debug('日志历史已清空');
   }
 
-  /**
-   * 导出日志历史为字符串
-   * @returns {string} 导出的日志字符串
-   */
-  exportLogs() {
+  exportLogs(): string {
     return this.logHistory
       .map(log => `[${new Date(log.timestamp).toISOString()}] [${log.level}] ${log.message}`)
       .join('\n');
   }
 
-  /**
-   * 捕获错误并记录
-   * @param {Error} error - 错误对象
-   * @param {string} context - 错误上下文
-   */
-  captureError(error, context = '') {
+  captureError(error: Error, context: string = ''): string {
     const errorMessage = `${context}${context ? ': ' : ''}${error.message || 'Unknown error'}`;
     const stack = error.stack || '';
     this.error(errorMessage, 'Stack:', stack);
-    
-    // 可以在这里添加错误上报逻辑
     return errorMessage;
   }
 }
 
-// 创建默认实例
 const defaultLogger = new Logger();
 
-// 导出类和默认实例
 export { Logger };
 export default defaultLogger;
 
-// src/utils/storage.js
-
 import logger from './logger.js';
+import type { StorageInfo } from '../types/index.js';
 
-/**
- * 安全地获取本地存储数据
- * @param {string} key - 存储键名
- * @param {*} defaultValue - 默认值，当数据不存在或解析失败时返回
- * @returns {*} 存储的数据或默认值
- */
-export function getItem(key, defaultValue = null) {
+export function getItem<T = unknown>(key: string, defaultValue: T | null = null): T | null {
   try {
     const item = localStorage.getItem(key);
     if (!item) return defaultValue;
-    
+
     const parsed = JSON.parse(item);
-    
-    // 检查数据是否过期
-    if (parsed && parsed._expiresAt && Date.now() > parsed._expiresAt) {
+
+    if (parsed && typeof parsed === 'object' && parsed._expiresAt && Date.now() > parsed._expiresAt) {
       localStorage.removeItem(key);
       return defaultValue;
     }
-    
-    // 返回实际数据或整个对象（如果没有包装）
-    return parsed._data !== undefined ? parsed._data : parsed;
+
+    return parsed._data !== undefined ? (parsed._data as T) : (parsed as T);
   } catch (error) {
     logger.error(`获取存储数据失败 (${key}):`, error);
     return defaultValue;
   }
 }
 
-/**
- * 安全地设置本地存储数据
- * @param {string} key - 存储键名
- * @param {*} value - 要存储的数据
- * @param {number} [expiresIn] - 过期时间（毫秒），可选
- * @returns {boolean} 是否成功设置数据
- */
-export function setItem(key, value, expiresIn) {
+export function setItem<T = unknown>(key: string, value: T, expiresIn?: number): boolean {
   try {
-    let dataToStore;
-    
-    // 如果设置了过期时间，包装数据
+    let dataToStore: unknown;
+
     if (expiresIn !== undefined) {
       dataToStore = {
         _data: value,
@@ -1238,7 +1059,7 @@ export function setItem(key, value, expiresIn) {
     } else {
       dataToStore = value;
     }
-    
+
     localStorage.setItem(key, JSON.stringify(dataToStore));
     return true;
   } catch (error) {
@@ -1247,12 +1068,7 @@ export function setItem(key, value, expiresIn) {
   }
 }
 
-/**
- * 安全地删除本地存储数据
- * @param {string} key - 存储键名
- * @returns {boolean} 是否成功删除数据
- */
-export function removeItem(key) {
+export function removeItem(key: string): boolean {
   try {
     localStorage.removeItem(key);
     return true;
@@ -1262,11 +1078,7 @@ export function removeItem(key) {
   }
 }
 
-/**
- * 清除所有本地存储数据
- * @returns {boolean} 是否成功清除数据
- */
-export function clearAll() {
+export function clearAll(): boolean {
   try {
     localStorage.clear();
     return true;
@@ -1276,61 +1088,42 @@ export function clearAll() {
   }
 }
 
-/**
- * 获取嵌套数据
- * @param {string} key - 存储键名
- * @param {string} path - 嵌套路径，如 'user.profile.name'
- * @param {*} defaultValue - 默认值
- * @returns {*} 嵌套数据或默认值
- */
-export function getNestedItem(key, path, defaultValue = null) {
+export function getNestedItem<T = unknown>(key: string, path: string, defaultValue: T | null = null): T | null {
   try {
-    const data = getItem(key, {});
+    const data = getItem<Record<string, unknown>>(key, {});
     const keys = path.split('.');
-    let current = data;
-    
+    let current: unknown = data;
+
     for (const k of keys) {
       if (current === null || current === undefined || typeof current !== 'object') {
         return defaultValue;
       }
-      current = current[k];
+      current = (current as Record<string, unknown>)[k];
     }
-    
-    return current !== undefined ? current : defaultValue;
+
+    return current !== undefined ? (current as T) : defaultValue;
   } catch (error) {
     logger.error(`获取嵌套数据失败 (${key}.${path}):`, error);
     return defaultValue;
   }
 }
 
-/**
- * 设置嵌套数据
- * @param {string} key - 存储键名
- * @param {string} path - 嵌套路径，如 'user.profile.name'
- * @param {*} value - 要设置的值
- * @param {number} [expiresIn] - 过期时间（毫秒），可选
- * @returns {boolean} 是否成功设置数据
- */
-export function setNestedItem(key, path, value, expiresIn) {
+export function setNestedItem<T = unknown>(key: string, path: string, value: T, expiresIn?: number): boolean {
   try {
-    // 先获取现有数据，如果不存在则使用空对象
-    const data = getItem(key, {});
+    const data = getItem<Record<string, unknown>>(key, {});
     const keys = path.split('.');
     let current = data;
-    
-    // 导航到目标路径的父级
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
       if (!current[k] || typeof current[k] !== 'object') {
         current[k] = {};
       }
-      current = current[k];
+      current = current[k] as Record<string, unknown>;
     }
-    
-    // 设置最终值
+
     current[keys[keys.length - 1]] = value;
-    
-    // 保存更新后的数据
+
     return setItem(key, data, expiresIn);
   } catch (error) {
     logger.error(`设置嵌套数据失败 (${key}.${path}):`, error);
@@ -1338,58 +1131,37 @@ export function setNestedItem(key, path, value, expiresIn) {
   }
 }
 
-/**
- * 批量获取存储数据
- * @param {string[]} keys - 键名数组
- * @returns {Object} 键值对对象
- */
-export function getMultipleItems(keys) {
-  const result = {};
-  
+export function getMultipleItems(keys: string[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
   keys.forEach(key => {
     result[key] = getItem(key);
   });
-  
+
   return result;
 }
 
-/**
- * 批量设置存储数据
- * @param {Object} keyValuePairs - 键值对对象
- * @param {number} [expiresIn] - 统一的过期时间（毫秒），可选
- * @returns {Object} 每个键的设置结果
- */
-export function setMultipleItems(keyValuePairs, expiresIn) {
-  const results = {};
-  
+export function setMultipleItems(keyValuePairs: Record<string, unknown>, expiresIn?: number): Record<string, boolean> {
+  const results: Record<string, boolean> = {};
+
   for (const [key, value] of Object.entries(keyValuePairs)) {
     results[key] = setItem(key, value, expiresIn);
   }
-  
+
   return results;
 }
 
-/**
- * 批量删除存储数据
- * @param {string[]} keys - 键名数组
- * @returns {Object} 每个键的删除结果
- */
-export function removeMultipleItems(keys) {
-  const results = {};
-  
+export function removeMultipleItems(keys: string[]): Record<string, boolean> {
+  const results: Record<string, boolean> = {};
+
   keys.forEach(key => {
     results[key] = removeItem(key);
   });
-  
+
   return results;
 }
 
-/**
- * 检查键是否存在
- * @param {string} key - 存储键名
- * @returns {boolean} 是否存在
- */
-export function hasItem(key) {
+export function hasItem(key: string): boolean {
   try {
     return localStorage.getItem(key) !== null;
   } catch (error) {
@@ -1398,15 +1170,11 @@ export function hasItem(key) {
   }
 }
 
-/**
- * 获取存储的所有键名
- * @returns {string[]} 键名数组
- */
-export function getAllKeys() {
+export function getAllKeys(): string[] {
   try {
-    const keys = [];
+    const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
-      keys.push(localStorage.key(i));
+      keys.push(localStorage.key(i) || '');
     }
     return keys;
   } catch (error) {
@@ -1415,29 +1183,27 @@ export function getAllKeys() {
   }
 }
 
-/**
- * 获取存储使用情况
- * @returns {Object} 存储使用信息
- */
-export function getStorageInfo() {
+export function getStorageInfo(): StorageInfo {
   try {
     let totalSize = 0;
-    const items = {};
-    
+    const items: Record<string, number> = {};
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      const value = localStorage.getItem(key);
+      const value = localStorage.getItem(key || '');
       const size = new Blob([key + value]).size;
-      
+
       totalSize += size;
-      items[key] = size;
+      if (key) {
+        items[key] = size;
+      }
     }
-    
+
     return {
       totalItems: localStorage.length,
-      totalSize: totalSize,
+      totalSize,
       totalSizeKB: (totalSize / 1024).toFixed(2),
-      items: items
+      items
     };
   } catch (error) {
     logger.error('获取存储信息失败:', error);
@@ -1450,84 +1216,45 @@ export function getStorageInfo() {
   }
 }
 
-/**
- * 为存储键添加前缀
- * @param {string} prefix - 前缀
- * @param {string} key - 原始键名
- * @returns {string} 添加前缀后的键名
- */
-export function getPrefixedKey(prefix, key) {
+export function getPrefixedKey(prefix: string, key: string): string {
   return `${prefix}_${key}`;
 }
 
-/**
- * 命名空间存储类
- * 提供基于命名空间的存储管理
- */
 export class NamespacedStorage {
-  /**
-   * 构造函数
-   * @param {string} namespace - 命名空间
-   */
-  constructor(namespace) {
+  private namespace: string;
+
+  constructor(namespace: string) {
     this.namespace = namespace;
   }
-  
-  /**
-   * 获取带命名空间的键名
-   * @param {string} key - 原始键名
-   * @returns {string} 带命名空间的键名
-   */
-  _getKey(key) {
+
+  private _getKey(key: string): string {
     return getPrefixedKey(this.namespace, key);
   }
-  
-  /**
-   * 获取数据
-   * @param {string} key - 键名
-   * @param {*} defaultValue - 默认值
-   * @returns {*} 存储的数据
-   */
-  getItem(key, defaultValue = null) {
+
+  getItem<T = unknown>(key: string, defaultValue: T | null = null): T | null {
     return getItem(this._getKey(key), defaultValue);
   }
-  
-  /**
-   * 设置数据
-   * @param {string} key - 键名
-   * @param {*} value - 值
-   * @param {number} [expiresIn] - 过期时间
-   * @returns {boolean} 是否成功
-   */
-  setItem(key, value, expiresIn) {
+
+  setItem<T = unknown>(key: string, value: T, expiresIn?: number): boolean {
     return setItem(this._getKey(key), value, expiresIn);
   }
-  
-  /**
-   * 删除数据
-   * @param {string} key - 键名
-   * @returns {boolean} 是否成功
-   */
-  removeItem(key) {
+
+  removeItem(key: string): boolean {
     return removeItem(this._getKey(key));
   }
-  
-  /**
-   * 清除命名空间下的所有数据
-   * @returns {boolean} 是否成功
-   */
-  clear() {
+
+  clear(): boolean {
     try {
       const prefix = `${this.namespace}_`;
-      const keysToRemove = [];
-      
+      const keysToRemove: string[] = [];
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(prefix)) {
           keysToRemove.push(key);
         }
       }
-      
+
       keysToRemove.forEach(key => localStorage.removeItem(key));
       return true;
     } catch (error) {
@@ -1537,126 +1264,87 @@ export class NamespacedStorage {
   }
 }
 
-// src/utils/eventEmitter.js
-
 import logger from './logger.js';
 
-class EventEmitter {
-  /**
-   * 构造函数
-   */
-  constructor() {
-    this.events = {}; // 存储事件和对应的监听器
-    this.maxListeners = 10; // 默认每个事件最大监听器数量
-  }
+interface Listener {
+  (...args: unknown[]): void;
+  originalListener?: Listener;
+}
 
-  /**
-   * 设置每个事件的最大监听器数量
-   * @param {number} n - 最大监听器数量
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  setMaxListeners(n) {
+interface EventsMap {
+  [event: string]: Listener[];
+}
+
+class EventEmitter {
+  private events: EventsMap = {};
+  private maxListeners: number = 10;
+
+  setMaxListeners(n: number): EventEmitter {
     this.maxListeners = n;
     return this;
   }
 
-  /**
-   * 监听事件
-   * @param {string} event - 事件名称
-   * @param {Function} listener - 事件监听器函数
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  on(event, listener) {
+  on(event: string, listener: Listener): EventEmitter {
     if (typeof listener !== 'function') {
       throw new TypeError('监听器必须是函数');
     }
 
-    // 初始化事件监听器数组
     if (!this.events[event]) {
       this.events[event] = [];
     }
 
-    // 检查监听器数量限制
     if (this.events[event].length >= this.maxListeners && !this.events[event].includes(listener)) {
       logger.warn(`警告: 事件'${event}'的监听器数量超过了${this.maxListeners}个。` +
                  `使用setMaxListeners方法可以修改此限制。`);
     }
 
-    // 添加监听器
     this.events[event].push(listener);
     return this;
   }
 
-  /**
-   * 监听事件，但只触发一次
-   * @param {string} event - 事件名称
-   * @param {Function} listener - 事件监听器函数
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  once(event, listener) {
+  once(event: string, listener: Listener): EventEmitter {
     if (typeof listener !== 'function') {
       throw new TypeError('监听器必须是函数');
     }
 
-    // 创建一次性监听器包装函数
-    const onceWrapper = (...args) => {
-      this.off(event, onceWrapper); // 触发后立即移除
-      listener.apply(this, args);    // 调用原始监听器
+    const onceWrapper: Listener = (...args) => {
+      this.off(event, onceWrapper);
+      listener.apply(this, args);
     };
 
-    onceWrapper.originalListener = listener; // 保存原始监听器引用
+    onceWrapper.originalListener = listener;
     return this.on(event, onceWrapper);
   }
 
-  /**
-   * 移除事件监听器
-   * @param {string} [event] - 事件名称（可选）
-   * @param {Function} [listener] - 要移除的监听器函数（可选）
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  off(event, listener) {
-    // 如果没有指定事件，移除所有事件的所有监听器
+  off(event?: string, listener?: Listener): EventEmitter {
     if (event === undefined) {
       this.events = {};
       return this;
     }
 
-    // 如果事件不存在，直接返回
     if (!this.events[event]) {
       return this;
     }
 
-    // 如果没有指定监听器，移除该事件的所有监听器
     if (listener === undefined) {
       this.events[event] = [];
       return this;
     }
 
-    // 过滤掉要移除的监听器
     this.events[event] = this.events[event].filter(l => {
-      // 处理once包装的监听器
       return l !== listener && l.originalListener !== listener;
     });
 
     return this;
   }
 
-  /**
-   * 触发事件
-   * @param {string} event - 事件名称
-   * @param {...*} args - 传递给监听器的参数
-   * @returns {boolean} 是否有监听器被触发
-   */
-  emit(event, ...args) {
-    // 如果事件不存在或没有监听器，返回false
+  emit(event: string, ...args: unknown[]): boolean {
     if (!this.events[event] || this.events[event].length === 0) {
       return false;
     }
 
-    // 复制监听器数组，避免触发过程中修改数组导致的问题
     const listeners = [...this.events[event]];
-    
-    // 异步执行所有监听器，避免阻塞
+
     listeners.forEach(listener => {
       try {
         listener.apply(this, args);
@@ -1668,114 +1356,112 @@ class EventEmitter {
     return true;
   }
 
-  /**
-   * 获取指定事件的所有监听器
-   * @param {string} event - 事件名称
-   * @returns {Array} 监听器函数数组
-   */
-  listeners(event) {
+  listeners(event: string): Listener[] {
     return this.events[event] || [];
   }
 
-  /**
-   * 获取所有注册的事件名称
-   * @returns {Array} 事件名称数组
-   */
-  eventNames() {
+  eventNames(): string[] {
     return Object.keys(this.events).filter(event => this.events[event].length > 0);
   }
 
-  /**
-   * 获取指定事件的监听器数量
-   * @param {string} event - 事件名称
-   * @returns {number} 监听器数量
-   */
-  listenerCount(event) {
+  listenerCount(event: string): number {
     return this.events[event] ? this.events[event].length : 0;
   }
 
-  /**
-   * 清除指定事件的所有监听器
-   * @param {string} event - 事件名称
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  removeAllListeners(event) {
+  removeAllListeners(event?: string): EventEmitter {
     if (event) {
-      // 清除特定事件的监听器
       this.events[event] = [];
     } else {
-      // 清除所有事件的监听器
       this.events = {};
     }
     return this;
   }
 
-  /**
-   * 在监听器队列开头添加监听器
-   * @param {string} event - 事件名称
-   * @param {Function} listener - 事件监听器函数
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  prependListener(event, listener) {
+  prependListener(event: string, listener: Listener): EventEmitter {
     if (typeof listener !== 'function') {
       throw new TypeError('监听器必须是函数');
     }
 
-    // 初始化事件监听器数组
     if (!this.events[event]) {
       this.events[event] = [];
     }
 
-    // 添加到队列开头
     this.events[event].unshift(listener);
     return this;
   }
 
-  /**
-   * 在监听器队列开头添加只触发一次的监听器
-   * @param {string} event - 事件名称
-   * @param {Function} listener - 事件监听器函数
-   * @returns {EventEmitter} 当前实例，支持链式调用
-   */
-  prependOnceListener(event, listener) {
+  prependOnceListener(event: string, listener: Listener): EventEmitter {
     if (typeof listener !== 'function') {
       throw new TypeError('监听器必须是函数');
     }
 
-    const onceWrapper = (...args) => {
+    const onceWrapper: Listener = (...args) => {
       this.off(event, onceWrapper);
       listener.apply(this, args);
     };
 
     onceWrapper.originalListener = listener;
-    
-    // 初始化事件监听器数组
+
     if (!this.events[event]) {
       this.events[event] = [];
     }
 
-    // 添加到队列开头
     this.events[event].unshift(onceWrapper);
     return this;
   }
 }
 
-// 创建默认实例
 const defaultEventEmitter = new EventEmitter();
 
-// 导出类和默认实例
 export { EventEmitter };
 export default defaultEventEmitter;
-
-// src/utils/autoExecutor.js
 
 import { debounce, throttle, getElement, getElements, findElementsByClassPattern, findElementsByStructure } from './dom.js';
 import logger from './logger.js';
 import eventEmitter from './eventEmitter.js';
 import buttonDetector from './buttonDetector.js';
 
+interface RetryConfig {
+  maxAttempts: number;
+  initialDelay: number;
+  backoffFactor: number;
+}
+
+interface AutoExecutorOptions {
+  detectionStrategies?: string[];
+  retryConfig?: RetryConfig;
+  checkInterval?: number;
+  enabled?: boolean;
+  customDetector?: () => HTMLElement | null;
+  confirmationRequired?: boolean;
+  enableLogging?: boolean;
+  captureScreenshots?: boolean;
+  maxHistorySize?: number;
+}
+
+interface ExecutionRecord {
+  timestamp: string;
+  buttonText: string;
+  buttonSelector: string;
+  success: boolean;
+  error?: string;
+}
+
+interface ButtonClickEvent {
+  button: HTMLElement;
+  text: string | null;
+  selector: string;
+}
+
 class AutoExecutor {
-  constructor(options = {}) {
+  private options: Required<AutoExecutorOptions>;
+  private isRunning: boolean;
+  private isEmergencyStopped: boolean;
+  private checkIntervalId: ReturnType<typeof setInterval> | null;
+  private executionHistory: ExecutionRecord[];
+  private currentAttempt: number;
+
+  constructor(options: AutoExecutorOptions = {}) {
     this.options = {
       detectionStrategies: ['text', 'css', 'structure'],
       retryConfig: {
@@ -1808,7 +1494,7 @@ class AutoExecutor {
     });
   }
 
-  start() {
+  start(): void {
     if (this.isRunning) {
       if (this.options.enableLogging) {
         logger.warn('AutoExecutor is already running');
@@ -1841,7 +1527,7 @@ class AutoExecutor {
     eventEmitter.emit('autoExecutor.started');
   }
 
-  stop() {
+  stop(): void {
     if (!this.isRunning) {
       if (this.options.enableLogging) {
         logger.warn('AutoExecutor is not running');
@@ -1864,7 +1550,7 @@ class AutoExecutor {
     eventEmitter.emit('autoExecutor.stopped');
   }
 
-  emergencyStop() {
+  emergencyStop(): void {
     this.isEmergencyStopped = true;
     this.stop();
 
@@ -1875,7 +1561,7 @@ class AutoExecutor {
     eventEmitter.emit('autoExecutor.emergencyStopped');
   }
 
-  async detectAndClick() {
+  private async detectAndClick(): Promise<void> {
     if (this.isEmergencyStopped) {
       return;
     }
@@ -1918,8 +1604,8 @@ class AutoExecutor {
     }
   }
 
-  async detectButton() {
-    let button = null;
+  private async detectButton(): Promise<HTMLElement | null> {
+    let button: HTMLElement | null = null;
 
     if (this.options.customDetector) {
       try {
@@ -1945,7 +1631,7 @@ class AutoExecutor {
     return button;
   }
 
-  isButtonClickable(button) {
+  private isButtonClickable(button: HTMLElement): boolean {
     if (!button) return false;
     if (button.disabled || button.hasAttribute('disabled')) return false;
     if (button.style.display === 'none' || button.style.visibility === 'hidden') return false;
@@ -1960,7 +1646,7 @@ class AutoExecutor {
     return true;
   }
 
-  compressHistory() {
+  private compressHistory(): void {
     if (this.executionHistory.length > this.options.maxHistorySize) {
       this.executionHistory = this.executionHistory.slice(-this.options.maxHistorySize);
 
@@ -1970,7 +1656,7 @@ class AutoExecutor {
     }
   }
 
-  clickButton(button) {
+  private clickButton(button: HTMLElement): void {
     if (!button) return;
 
     try {
@@ -2001,12 +1687,13 @@ class AutoExecutor {
         selector: this.getElementSelector(button)
       });
     } catch (error) {
+      const err = error as Error;
       this.executionHistory.push({
         timestamp: new Date().toISOString(),
         buttonText: button.textContent || button.innerText || 'Unknown',
         buttonSelector: this.getElementSelector(button),
         success: false,
-        error: error.message
+        error: err.message
       });
 
       this.compressHistory();
@@ -2022,7 +1709,7 @@ class AutoExecutor {
     }
   }
 
-  getElementSelector(element) {
+  private getElementSelector(element: HTMLElement | null): string {
     if (!element) return '';
 
     try {
@@ -2039,8 +1726,8 @@ class AutoExecutor {
         }
       }
 
-      let path = [];
-      let current = element;
+      const path: string[] = [];
+      let current: HTMLElement | null = element;
 
       while (current && current.tagName) {
         let selector = current.tagName.toLowerCase();
@@ -2055,12 +1742,12 @@ class AutoExecutor {
       }
 
       return path.join(' > ');
-    } catch (error) {
+    } catch {
       return element.tagName.toLowerCase();
     }
   }
 
-  captureScreenshot(type) {
+  private captureScreenshot(type: string): void {
     try {
       if (typeof HTMLCanvasElement !== 'undefined') {
         logger.info(`AutoExecutor capturing screenshot: ${type}`);
@@ -2080,18 +1767,18 @@ class AutoExecutor {
     };
   }
 
-  getExecutionHistory(limit = null) {
+  getExecutionHistory(limit: number | null = null): ExecutionRecord[] {
     if (limit) {
       return this.executionHistory.slice(-limit);
     }
     return [...this.executionHistory];
   }
 
-  getCurrentAttempt() {
+  getCurrentAttempt(): number {
     return this.currentAttempt;
   }
 
-  updateOptions(newOptions) {
+  updateOptions(newOptions: Partial<AutoExecutorOptions>): void {
     this.options = { ...this.options, ...newOptions };
 
     if (this.options.enableLogging) {
@@ -2101,7 +1788,6 @@ class AutoExecutor {
 }
 
 export default new AutoExecutor();
-
 
 // src/utils/performance.js
 

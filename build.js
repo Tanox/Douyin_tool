@@ -40,14 +40,6 @@ function bumpVersion(version, type) {
   return `${v.major}.${v.minor}.${v.patch}`;
 }
 
-function readFile(filePath) {
-  return fs.readFileSync(path.resolve(filePath), 'utf-8');
-}
-
-function writeFile(filePath, content) {
-  fs.writeFileSync(path.resolve(filePath), content, 'utf-8');
-}
-
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -85,11 +77,11 @@ function buildUserScript() {
     const files = [
       'src/config.js',
       'src/utils/index.js',
-      'src/utils/dom.js',
-      'src/utils/logger.js',
-      'src/utils/storage.js',
-      'src/utils/eventEmitter.js',
-      'src/utils/autoExecutor.js',
+      'src/utils/dom.ts',
+      'src/utils/logger.ts',
+      'src/utils/storage.ts',
+      'src/utils/eventEmitter.ts',
+      'src/utils/autoExecutor.ts',
       'src/utils/performance.js',
       'src/controllers/elementController.js',
       'src/controllers/layoutController.js',
@@ -101,8 +93,12 @@ function buildUserScript() {
 
     let scriptContent = metadata;
     files.forEach(file => {
-      if (fs.existsSync(path.resolve(file))) {
-        scriptContent += readFile(file) + '\n\n';
+      const resolvedPath = path.resolve(file);
+      if (fs.existsSync(resolvedPath)) {
+        let content = fs.readFileSync(resolvedPath, 'utf-8');
+        content = content.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'");
+        content = content.replace(/from '\.\.\/(\w+)\.ts'/g, "from '../$1.js'");
+        scriptContent += content + '\n\n';
       } else {
         console.warn(`File not found: ${file}`);
       }
@@ -112,11 +108,12 @@ function buildUserScript() {
     ensureDir(distDir);
 
     const outputFile = path.join(distDir, 'douyin_ui_customizer.user.js');
-    writeFile(outputFile, scriptContent);
+    fs.writeFileSync(outputFile, scriptContent, 'utf-8');
 
     console.log(`Build completed: ${outputFile}`);
   } catch (error) {
     console.error('Build failed:', error.message);
+    console.error(error.stack);
     process.exit(1);
   }
 }
