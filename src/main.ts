@@ -9,7 +9,7 @@ import themeManager from './styles/theme.ts';
 import { injectStyles, injectBasicStyles } from './utils/styleGenerator.ts';
 import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.ts';
 
-const CURRENT_VERSION = '2.0.1';
+const CURRENT_VERSION = '2.0.2';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');
