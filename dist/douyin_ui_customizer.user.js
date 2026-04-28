@@ -18,29 +18,92 @@
 // @downloadURL
 // ==/UserScript==
 
-// 配置管理模块 v2.0.1 - 负责处理配置的加载、保存和默认设置
-
 import { getItem, setItem, getNestedItem, setNestedItem, NamespacedStorage } from './utils/storage.ts';
 import logger from './utils/logger.ts';
 import eventEmitter from './utils/eventEmitter.ts';
 
-// 创建配置专用的命名空间存储
 const configStorage = new NamespacedStorage('douyin_tool_config');
 
-// 配置存储键名
 const CONFIG_KEY = 'main';
-
-// 配置版本，用于配置迁移
 const CONFIG_VERSION = '2.0.1';
 
-/**
- * 默认配置
- */
-const DEFAULT_CONFIG = {
-  version: CONFIG_VERSION,
-  theme: 'light', // light 或 dark
+interface DanmakuConfig {
+  fontSize: number;
+  color: string;
+  opacity: number;
+  speed: string;
+  position: string;
+  maxLines: number;
+}
 
-  // 短视频界面配置
+interface ControlBarConfig {
+  show: boolean;
+  autoHide: boolean;
+  position: string;
+  size: string;
+  opacity: number;
+}
+
+interface PlaybackConfig {
+  defaultQuality: string;
+  autoPlay: boolean;
+  loop: boolean;
+}
+
+interface VideoUIConfig {
+  showLikeButton: boolean;
+  showCommentButton: boolean;
+  showShareButton: boolean;
+  showAuthorInfo: boolean;
+  showMusicInfo: boolean;
+  showDescription: boolean;
+  showRecommendations: boolean;
+  layout: string;
+  controlBar: ControlBarConfig;
+  playback: PlaybackConfig;
+}
+
+interface LiveUIConfig {
+  showGifts: boolean;
+  showDanmaku: boolean;
+  showRecommendations: boolean;
+  showAds: boolean;
+  showStats: boolean;
+  danmaku: DanmakuConfig;
+  layout: string;
+  volume: number;
+}
+
+interface GeneralConfig {
+  autoPlay: boolean;
+  autoScroll: boolean;
+  keyboardShortcuts: boolean;
+  notifications: boolean;
+  language: string;
+  animations: boolean;
+  updateCheck: boolean;
+}
+
+interface AdvancedConfig {
+  debugMode: boolean;
+  performanceMode: boolean;
+  customCSS: string;
+  customScripts: string[];
+}
+
+interface Config {
+  version: string;
+  theme: string;
+  videoUI: VideoUIConfig;
+  liveUI: LiveUIConfig;
+  general: GeneralConfig;
+  advanced: AdvancedConfig;
+}
+
+const DEFAULT_CONFIG: Config = {
+  version: CONFIG_VERSION,
+  theme: 'light',
+
   videoUI: {
     showLikeButton: true,
     showCommentButton: true,
@@ -64,7 +127,6 @@ const DEFAULT_CONFIG = {
     }
   },
 
-  // 直播间界面配置
   liveUI: {
     showGifts: true,
     showDanmaku: true,
@@ -83,7 +145,6 @@ const DEFAULT_CONFIG = {
     volume: 100
   },
 
-  // 通用配置
   general: {
     autoPlay: true,
     autoScroll: false,
@@ -94,7 +155,6 @@ const DEFAULT_CONFIG = {
     updateCheck: true
   },
 
-  // 高级配置
   advanced: {
     debugMode: false,
     performanceMode: false,
@@ -103,85 +163,59 @@ const DEFAULT_CONFIG = {
   }
 };
 
-// 当前配置对象缓存
-let currentConfig = null;
+let currentConfig: Config | null = null;
 
-/**
- * 加载配置
- * @returns {Object} 配置对象
- */
-export function loadConfig() {
+export function loadConfig(): Config {
   try {
     const savedConfig = configStorage.getItem(CONFIG_KEY);
 
     if (savedConfig) {
       logger.info('[抖音工具] 加载已保存的配置');
-      // 检查配置版本，如果版本不匹配，进行迁移
-      const loadedConfig = migrateConfig(savedConfig);
-      // 合并保存的配置和默认配置，确保所有必需字段都存在
+      const loadedConfig = migrateConfig(savedConfig as Config);
       currentConfig = mergeConfig(loadedConfig, DEFAULT_CONFIG);
-      // 更新配置版本
       currentConfig.version = CONFIG_VERSION;
     } else {
       logger.info('[抖音工具] 使用默认配置');
       currentConfig = { ...DEFAULT_CONFIG };
     }
 
-    // 保存更新后的配置
     saveConfig(currentConfig);
 
     return currentConfig;
   } catch (error) {
     logger.error('[抖音工具] 加载配置失败：', error);
     eventEmitter.emit('config.error', { type: 'load', error });
-    // 如果加载失败，使用默认配置
     currentConfig = { ...DEFAULT_CONFIG };
     return currentConfig;
   }
 }
 
-/**
- * 获取配置
- * @returns {Object} 当前配置对象
- */
-export function getConfig() {
+export function getConfig(): Config {
   if (!currentConfig) {
     loadConfig();
   }
-  return { ...currentConfig }; // 返回配置的副本，避免直接修改
+  return { ...currentConfig! };
 }
 
-/**
- * 设置配置
- * @param {Object|string} key - 配置键名或完整配置对象
- * @param {*} value - 配置值（当key为字符串时）
- * @returns {boolean} 是否设置成功
- */
-export function setConfig(key, value) {
+export function setConfig(key: string | Partial<Config>, value?: unknown): boolean {
   try {
     if (!currentConfig) {
       loadConfig();
     }
 
     if (typeof key === 'object') {
-      // 如果传入的是完整配置对象，合并到当前配置
-      currentConfig = mergeConfig(key, currentConfig);
+      currentConfig = mergeConfig(key, currentConfig!);
     } else {
-      // 如果传入的是键名和值，设置特定配置项
       if (key.includes('.')) {
-        // 支持嵌套路径，如 'videoUI.controlBar.show'
         setNestedConfig(key, value);
       } else {
-        // 顶层配置
-        currentConfig[key] = value;
+        (currentConfig as Record<string, unknown>)[key] = value;
       }
     }
 
-    // 更新配置版本
-    currentConfig.version = CONFIG_VERSION;
+    currentConfig!.version = CONFIG_VERSION;
 
-    // 保存更新后的配置
-    saveConfig(currentConfig);
+    saveConfig(currentConfig!);
 
     return true;
   } catch (error) {
@@ -191,73 +225,49 @@ export function setConfig(key, value) {
   }
 }
 
-/**
- * 设置嵌套配置
- * @param {string} path - 嵌套路径，如 'videoUI.controlBar.show'
- * @param {*} value - 配置值
- */
-function setNestedConfig(path, value) {
+function setNestedConfig(path: string, value: unknown): void {
   const keys = path.split('.');
-  let obj = currentConfig;
+  let obj: Record<string, unknown> = currentConfig as Record<string, unknown>;
 
-  // 导航到目标路径的父级
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
     if (!obj[key] || typeof obj[key] !== 'object') {
       obj[key] = {};
     }
-    obj = obj[key];
+    obj = obj[key] as Record<string, unknown>;
   }
 
-  // 设置最终值
   obj[keys[keys.length - 1]] = value;
 }
 
-/**
- * 获取特定配置项
- * @param {string} path - 配置路径，如 'videoUI.controlBar.show'
- * @param {*} defaultValue - 默认值
- * @returns {*} 配置值
- */
-export function getConfigValue(path, defaultValue = undefined) {
+export function getConfigValue<T = unknown>(path: string, defaultValue?: T): T {
   if (!currentConfig) {
     loadConfig();
   }
 
   if (path.includes('.')) {
-    // 支持嵌套路径
-    return getNestedItemFromConfig(path, defaultValue);
+    return getNestedItemFromConfig(path, defaultValue) as T;
   }
 
-  // 顶层配置
-  return currentConfig[path] !== undefined ? currentConfig[path] : defaultValue;
+  const value = (currentConfig as Record<string, unknown>)[path];
+  return value !== undefined ? (value as T) : defaultValue as T;
 }
 
-/**
- * 从配置中获取嵌套值
- * @param {string} path - 嵌套路径，如 'videoUI.controlBar.show'
- * @param {*} defaultValue - 默认值
- * @returns {*} 嵌套配置值
- */
-function getNestedItemFromConfig(path, defaultValue) {
+function getNestedItemFromConfig(path: string, defaultValue: unknown): unknown {
   const keys = path.split('.');
-  let obj = currentConfig;
+  let obj: Record<string, unknown> = currentConfig as Record<string, unknown>;
 
   for (const key of keys) {
     if (obj === null || obj === undefined || typeof obj !== 'object' || !(key in obj)) {
       return defaultValue;
     }
-    obj = obj[key];
+    obj = obj[key] as Record<string, unknown>;
   }
 
   return obj;
 }
 
-/**
- * 保存配置
- * @param {Object} config - 要保存的配置对象
- */
-export function saveConfig(config) {
+export function saveConfig(config: Config): boolean {
   try {
     configStorage.setItem(CONFIG_KEY, config);
     logger.info('[抖音工具] 配置已保存');
@@ -270,11 +280,7 @@ export function saveConfig(config) {
   }
 }
 
-/**
- * 重置配置为默认值
- * @returns {Object} 默认配置对象
- */
-export function resetConfig() {
+export function resetConfig(): Config {
   try {
     currentConfig = { ...DEFAULT_CONFIG };
     configStorage.setItem(CONFIG_KEY, currentConfig);
@@ -288,24 +294,20 @@ export function resetConfig() {
   }
 }
 
-/**
- * 合并配置对象
- * @param {Object} userConfig - 用户配置
- * @param {Object} defaultConfig - 默认配置
- * @returns {Object} 合并后的配置
- */
-function mergeConfig(userConfig, defaultConfig) {
+function mergeConfig(userConfig: Partial<Config>, defaultConfig: Config): Config {
   const merged = { ...defaultConfig };
 
   for (const key in userConfig) {
     if (Object.prototype.hasOwnProperty.call(userConfig, key)) {
       if (typeof userConfig[key] === 'object' && userConfig[key] !== null &&
-        typeof defaultConfig[key] === 'object' && defaultConfig[key] !== null &&
-        !Array.isArray(userConfig[key]) && !Array.isArray(defaultConfig[key])) {
-        // 递归合并嵌套对象
-        merged[key] = mergeConfig(userConfig[key], defaultConfig[key]);
+        typeof defaultConfig[key as keyof Config] === 'object' && defaultConfig[key as keyof Config] !== null &&
+        !Array.isArray(userConfig[key]) && !Array.isArray(defaultConfig[key as keyof Config])) {
+        merged[key as keyof Config] = mergeConfig(
+          userConfig[key] as Partial<Config>,
+          defaultConfig[key as keyof Config] as Config
+        ) as Config[keyof Config];
       } else {
-        merged[key] = userConfig[key];
+        merged[key as keyof Config] = userConfig[key] as Config[keyof Config];
       }
     }
   }
@@ -313,13 +315,7 @@ function mergeConfig(userConfig, defaultConfig) {
   return merged;
 }
 
-/**
- * 配置版本迁移
- * @param {Object} oldConfig - 旧配置
- * @returns {Object} 迁移后的配置
- */
-function migrateConfig(oldConfig) {
-  // 如果没有版本信息或版本不匹配，执行迁移
+function migrateConfig(oldConfig: Config): Config {
   if (!oldConfig.version || oldConfig.version !== CONFIG_VERSION) {
     logger.info(`[抖音工具] 执行配置迁移: ${oldConfig.version || 'unknown'} -> ${CONFIG_VERSION}`);
     eventEmitter.emit('config.migrating', {
@@ -327,10 +323,6 @@ function migrateConfig(oldConfig) {
       toVersion: CONFIG_VERSION
     });
 
-    // 这里可以添加具体的迁移逻辑
-    // 例如，添加新配置项，修改配置结构等
-
-    // 确保配置包含必要的新版本字段
     if (!oldConfig.advanced) {
       oldConfig.advanced = DEFAULT_CONFIG.advanced;
     }
@@ -339,7 +331,7 @@ function migrateConfig(oldConfig) {
       oldConfig.videoUI.playback = DEFAULT_CONFIG.videoUI.playback;
     }
 
-    if (!oldConfig.liveUI.maxLines) {
+    if (!oldConfig.liveUI.danmaku.maxLines) {
       oldConfig.liveUI.danmaku.maxLines = DEFAULT_CONFIG.liveUI.danmaku.maxLines;
     }
   }
@@ -347,11 +339,7 @@ function migrateConfig(oldConfig) {
   return oldConfig;
 }
 
-/**
- * 导出配置为JSON字符串
- * @returns {string} JSON格式的配置字符串
- */
-export function exportConfig() {
+export function exportConfig(): string {
   const config = getConfig();
   try {
     const result = JSON.stringify(config, null, 2);
@@ -364,25 +352,16 @@ export function exportConfig() {
   }
 }
 
-/**
- * 导入配置
- * @param {string} jsonString - JSON格式的配置字符串
- * @returns {boolean} 是否导入成功
- */
-export function importConfig(jsonString) {
+export function importConfig(jsonString: string): boolean {
   try {
     const config = JSON.parse(jsonString);
 
-    // 验证配置格式
     if (typeof config !== 'object' || config === null) {
       throw new Error('配置格式无效');
     }
 
-    // 合并导入的配置和默认配置，确保所有必需字段都存在
-    currentConfig = mergeConfig(config, DEFAULT_CONFIG);
-    // 更新配置版本
+    currentConfig = mergeConfig(config as Partial<Config>, DEFAULT_CONFIG);
     currentConfig.version = CONFIG_VERSION;
-    // 保存配置
     saveConfig(currentConfig);
 
     logger.info('[抖音工具] 配置导入成功');
@@ -395,21 +374,14 @@ export function importConfig(jsonString) {
   }
 }
 
-/**
- * 验证配置
- * @param {Object} config - 要验证的配置对象
- * @returns {Object} 包含验证结果的对象
- */
-export function validateConfig(config) {
-  const issues = [];
+export function validateConfig(config: Partial<Config>): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
 
   try {
-    // 验证主题配置
     if (config.theme && !['light', 'dark'].includes(config.theme)) {
       issues.push('主题配置无效，应为 light 或 dark');
     }
 
-    // 验证布局配置
     if (config.videoUI?.layout && !['default', 'compact', 'fullscreen'].includes(config.videoUI.layout)) {
       issues.push('视频界面布局配置无效');
     }
@@ -418,7 +390,6 @@ export function validateConfig(config) {
       issues.push('直播间界面布局配置无效');
     }
 
-    // 验证数值范围
     if (config.liveUI?.danmaku?.fontSize && (config.liveUI.danmaku.fontSize < 12 || config.liveUI.danmaku.fontSize > 36)) {
       issues.push('弹幕字体大小应在 12-36 之间');
     }
@@ -435,15 +406,12 @@ export function validateConfig(config) {
 
   return {
     valid: issues.length === 0,
-    issues: issues
+    issues
   };
 }
 
-// 导出配置管理对象
-// 添加初始化逻辑
 const initialized = loadConfig();
 
-// 注册配置事件监听器
 eventEmitter.on('config.saved', (data) => {
   logger.debug('[抖音工具] 配置已保存:', data);
 });
@@ -473,39 +441,25 @@ export default {
   }
 };
 
-// 初始化配置管理器
 logger.info('[抖音工具] 配置管理器已初始化');
 eventEmitter.emit('config.initialized', { config: currentConfig });
 
-// src/utils/index.js
-
-// DOM操作工具
 export * from './dom.js';
 
-// 存储工具
 export * from './storage.js';
 
-// 日志记录工具
 export { Logger } from './logger.js';
 export { default as logger } from './logger.js';
 
-// 事件总线
 export { EventEmitter } from './eventEmitter.js';
 export { default as eventEmitter } from './eventEmitter.js';
 
-// 性能监控
 export { PerformanceMonitor } from './performance.js';
 export { default as performanceMonitor } from './performance.js';
 
-// 自动执行控制器
 export { default as autoExecutor } from './autoExecutor.js';
 
-/**
- * 工具集合
- * 提供所有工具的统一访问
- */
 export const utils = {
-  // DOM工具
   debounce,
   throttle,
   getElement,
@@ -520,7 +474,6 @@ export const utils = {
   createElement,
   injectStyle,
   
-  // 存储工具
   getItem,
   setItem,
   removeItem,
@@ -536,19 +489,15 @@ export const utils = {
   getPrefixedKey,
   NamespacedStorage,
   
-  // 日志工具
   Logger,
   logger,
   
-  // 事件总线
   EventEmitter,
   eventEmitter,
   
-  // 性能监控
   PerformanceMonitor,
   performanceMonitor,
   
-  // 自动执行控制器
   autoExecutor
 };
 
@@ -560,6 +509,37 @@ import { isDOMCacheEntry } from '../types/index.js';
 
 const domCache = new Map<string, DOMCacheEntry>();
 const cacheExpiry = 5000;
+
+// 开发模式检测：通过 URL 参数或本地存储控制
+const isDevMode = ((): boolean => {
+  try {
+    // 检查 URL 参数
+    if (typeof window !== 'undefined' && window.location) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('douyin_tool_debug') === 'true') {
+        return true;
+      }
+    }
+    // 检查本地存储（UserScript 环境）
+    const debugFlag = localStorage.getItem('douyin_tool_debug_mode');
+    return debugFlag === 'true';
+  } catch {
+    return false;
+  }
+})();
+
+// 轻量级缓存条目验证（生产环境使用）
+function isValidCacheEntry(entry: unknown): entry is DOMCacheEntry {
+  if (typeof entry !== 'object' || entry === null) {
+    return false;
+  }
+  const e = entry as Record<string, unknown>;
+  // 仅检查必要的 timestamp 字段
+  return typeof e.timestamp === 'number';
+}
+
+// 根据环境选择验证函数
+const validateCacheEntry = isDevMode ? isDOMCacheEntry : isValidCacheEntry;
 
 function generateCacheKey(selector: string | RegExp, parent: HTMLElement | Document = document): string {
   const selectorStr = typeof selector === 'string' ? selector : selector.toString();
@@ -613,8 +593,10 @@ export function getElement(selector: string, parent: HTMLElement | Document = do
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.element as HTMLElement | null;
@@ -641,8 +623,10 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.elements || [];
@@ -669,8 +653,10 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.elements || [];
@@ -720,8 +706,10 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      if (!isDOMCacheEntry(entry)) {
-        logger.warn('缓存条目类型验证失败，已清除');
+      if (!validateCacheEntry(entry)) {
+        if (isDevMode) {
+          logger.warn('缓存条目类型验证失败，已清除');
+        }
         domCache.delete(cacheKey);
       } else {
         return entry.elements || [];
@@ -2101,32 +2089,460 @@ const defaultPerformanceMonitor = new PerformanceMonitor();
 export { PerformanceMonitor };
 export default defaultPerformanceMonitor;
 
-// src/controllers/elementController.js
+import { getElement, getElements, findElementsByStructure } from './dom.js';
+import logger from './logger.js';
+
+interface ButtonDetectorOptions {
+  buttonTexts?: string[];
+  cssSelectors?: string[];
+  enableLogging?: boolean;
+}
+
+export class ButtonDetector {
+  private options: ButtonDetectorOptions;
+
+  constructor(options: ButtonDetectorOptions = {}) {
+    this.options = {
+      buttonTexts: ['Continue', 'Run', 'Execute', 'Next', 'Proceed', 'Start', '继续', '运行', '执行', '下一步', '开始'],
+      cssSelectors: [
+        'button:contains(Continue)',
+        'button:contains(Run)',
+        'button:contains(Execute)',
+        'button:contains(Next)',
+        'button:contains(Proceed)',
+        'button:contains(Start)',
+        'button:contains(继续)',
+        'button:contains(运行)',
+        'button:contains(执行)',
+        'button:contains(下一步)',
+        'button:contains(开始)',
+        '.button-primary',
+        '.btn-primary',
+        '[type="submit"]',
+        '.continue-button',
+        '.run-button',
+        '.execute-button'
+      ],
+      enableLogging: true,
+      ...options
+    };
+  }
+
+  detect(options: { detectionStrategies?: string[] } = {}): HTMLElement | null {
+    const detectionStrategies = options.detectionStrategies || ['text', 'css', 'structure'];
+    let button: HTMLElement | null = null;
+
+    for (const strategy of detectionStrategies) {
+      switch (strategy) {
+        case 'text':
+          button = this.detectByText();
+          break;
+        case 'css':
+          button = this.detectByCSS();
+          break;
+        case 'structure':
+          button = this.detectByStructure();
+          break;
+        case 'xpath':
+          button = this.detectByXPath();
+          break;
+        case 'accessibility':
+          button = this.detectByAccessibility();
+          break;
+        default:
+          if (this.options.enableLogging) {
+            logger.warn(`ButtonDetector unknown detection strategy: ${strategy}`);
+          }
+      }
+
+      if (button) {
+        if (this.options.enableLogging) {
+          logger.info(`ButtonDetector detected button using ${strategy} strategy`);
+        }
+        break;
+      }
+    }
+
+    return button;
+  }
+
+  private detectByText(): HTMLElement | null {
+    const allElements = document.getElementsByTagName('*');
+
+    for (const element of allElements) {
+      const text = element.textContent || element.innerText || '';
+      const trimmedText = text.trim();
+
+      if (this.options.buttonTexts?.includes(trimmedText)) {
+        if (this.isClickableElement(element as HTMLElement)) {
+          return element as HTMLElement;
+        }
+
+        let parent = element.parentElement;
+        let depth = 0;
+        const maxDepth = 5;
+
+        while (parent && depth < maxDepth) {
+          if (this.isClickableElement(parent)) {
+            return parent;
+          }
+          parent = parent.parentElement;
+          depth++;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private detectByCSS(): HTMLElement | null {
+    for (const selector of this.options.cssSelectors || []) {
+      if (selector.includes(':contains')) {
+        const textMatch = selector.match(/:contains\(([^)]+)\)/);
+        if (textMatch && textMatch[1]) {
+          const text = textMatch[1].replace(/['"]/g, '');
+          const baseSelector = selector.replace(/:contains\([^)]+\)/, '');
+          const elements = getElements(baseSelector || '*');
+
+          for (const element of elements) {
+            if (element.textContent && element.textContent.includes(text)) {
+              return element;
+            }
+          }
+        }
+      } else {
+        const element = getElement(selector);
+        if (element) {
+          return element;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private detectByStructure(): HTMLElement | null {
+    const buttonStructures = [
+      { tagName: 'button' },
+      { tagName: 'input', attributes: { type: 'button' } },
+      { tagName: 'input', attributes: { type: 'submit' } },
+      { tagName: 'div', attributes: { role: 'button' } },
+      { tagName: 'span', attributes: { role: 'button' } },
+      { tagName: 'a', attributes: { href: /./ } }
+    ];
+
+    for (const structure of buttonStructures) {
+      const elements = findElementsByStructure(structure);
+      for (const element of elements) {
+        const text = element.textContent || element.innerText || '';
+        const trimmedText = text.trim();
+        if (this.options.buttonTexts?.includes(trimmedText)) {
+          return element;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private detectByXPath(): HTMLElement | null {
+    try {
+      for (const text of this.options.buttonTexts || []) {
+        const xpath = `//*[text()='${text}' or contains(text(),'${text}')]`;
+        const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+        const element = result.singleNodeValue;
+
+        if (element) {
+          return element as HTMLElement;
+        }
+      }
+    } catch (error) {
+      if (this.options.enableLogging) {
+        logger.error('ButtonDetector XPath detection failed:', error);
+      }
+    }
+
+    return null;
+  }
+
+  private detectByAccessibility(): HTMLElement | null {
+    const accessibilityAttributes = ['aria-label', 'aria-labelledby', 'title', 'alt'];
+    const allElements = document.getElementsByTagName('*');
+
+    for (const element of allElements) {
+      for (const attr of accessibilityAttributes) {
+        const value = element.getAttribute(attr);
+        if (value) {
+          for (const text of this.options.buttonTexts || []) {
+            if (value.includes(text)) {
+              return element as HTMLElement;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private isClickableElement(element: HTMLElement): boolean {
+    const clickableTags = ['button', 'input', 'a', 'div', 'span'];
+    const clickableRoles = ['button', 'link', 'submit'];
+
+    if (clickableTags.includes(element.tagName.toLowerCase())) {
+      const role = element.getAttribute('role');
+      if (!role || clickableRoles.includes(role)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+
+export default new ButtonDetector();
+
+import { debounce } from './dom.js';
+import logger from './logger.js';
+import type UIManager from '../ui_manager.js';
+
+let mutationObserver: MutationObserver | null = null;
+
+export function isVideoPage(): boolean {
+  return location.pathname.includes('/video/') ||
+         location.pathname === '/' ||
+         location.pathname.includes('/user/');
+}
+
+export function isLivePage(): boolean {
+  return location.pathname.includes('/live/');
+}
+
+export function observePageChanges(uiManager: UIManager): void {
+  logger.info('开始监听页面变化...');
+
+  const debouncedApplyCustomizations = debounce(() => {
+    logger.info('应用UI定制...');
+    if (isVideoPage()) {
+      logger.info('检测到短视频页面，应用视频定制');
+      uiManager.applyVideoCustomizations();
+    }
+    if (isLivePage()) {
+      logger.info('检测到直播间页面，应用直播定制');
+      uiManager.applyLiveCustomizations();
+    }
+  }, 300);
+
+  mutationObserver = new MutationObserver((mutations) => {
+    let hasSignificantChange = false;
+
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length > 0) {
+        const addedElements = Array.from(mutation.addedNodes).filter(node => node.nodeType === 1);
+        for (const element of addedElements) {
+          const el = element as HTMLElement;
+          if (el.querySelector('[class*="video"],[class*="content"],[class*="main"],[id*="video"]') ||
+              el.className && (el.className.includes('video') ||
+                               el.className.includes('content') ||
+                               el.className.includes('main'))) {
+            hasSignificantChange = true;
+            break;
+          }
+        }
+      }
+
+      if (hasSignificantChange) break;
+    }
+
+    if (hasSignificantChange) {
+      debouncedApplyCustomizations();
+    }
+  });
+
+  mutationObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    characterData: true
+  });
+
+  const initialApplyDelay = [500, 2000, 5000];
+  initialApplyDelay.forEach((delay, index) => {
+    setTimeout(() => {
+      logger.info(`初始应用UI定制 (尝试 ${index + 1}/${initialApplyDelay.length})`);
+      if (isVideoPage()) {
+        uiManager.applyVideoCustomizations();
+      }
+      if (isLivePage()) {
+        uiManager.applyLiveCustomizations();
+      }
+    }, delay);
+  });
+}
+
+export function stopObserving(): void {
+  if (mutationObserver) {
+    mutationObserver.disconnect();
+    mutationObserver = null;
+  }
+}
+
+export function getMutationObserver(): MutationObserver | null {
+  return mutationObserver;
+}
+
+import { injectStyle } from './dom.js';
+import logger from './logger.js';
+import eventEmitter from './eventEmitter.js';
+import type { Config } from '../config.js';
+
+export function generateCustomStyles(config: Config): string {
+  let customCSS = '';
+
+  customCSS += `
+    .douyin-ui-hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      width: 0 !important;
+      height: 0 !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+  `;
+
+  if (config.videoUI) {
+    if (!config.videoUI.showLikeButton) {
+      customCSS += '.like-button { display: none !important; }';
+    }
+    if (!config.videoUI.showCommentButton) {
+      customCSS += '.comment-button { display: none !important; }';
+    }
+    if (!config.videoUI.showShareButton) {
+      customCSS += '.share-button { display: none !important; }';
+    }
+    if (!config.videoUI.showAuthorInfo) {
+      customCSS += '.author-info { display: none !important; }';
+    }
+    if (!config.videoUI.showMusicInfo) {
+      customCSS += '.music-info, .music-label, .sound-info { display: none !important; }';
+    }
+    if (!config.videoUI.showDescription) {
+      customCSS += '.video-desc, .description, .video-content { display: none !important; }';
+    }
+  }
+
+  if (config.liveUI) {
+    if (!config.liveUI.showGifts) {
+      customCSS += `
+        .gift-animation, .gift-container, .gift-effect, .gift-display,
+        .present-animation, .reward-container, .award-animation,
+        .animation-container, .live-gift, .live-gift-animation,
+        [class*="gift"], [class*="present"], [class*="reward"],
+        [class*="award"], [class*="effect"], [class*="animation"],
+        [class*="特效"], [class*="礼物"], [class*="打赏"],
+        [class*="连击"], [class*="豪华礼物"], [class*="礼物特效"],
+        .gift-panel, .gift-button, .send-gift-button,
+        [style*="animation:"], [style*="transition:"],
+        [style*="z-index:"][style*="z-index: 1"],[style*="z-index: 2"],
+        [style*="z-index: 3"],[style*="z-index: 4"],[style*="z-index: 5"] {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
+          pointer-events: none !important;
+          z-index: -1 !important;
+        }
+      `;
+    }
+    if (!config.liveUI.showRecommendations) {
+      customCSS += '.live-recommendations, .live-ads { display: none !important; }';
+    }
+    if (config.liveUI.danmaku) {
+      if (config.liveUI.danmaku.fontSize) {
+        customCSS += `.danmaku { font-size: ${config.liveUI.danmaku.fontSize}px !important; }`;
+      }
+      if (config.liveUI.danmaku.color) {
+        customCSS += `.danmaku { color: ${config.liveUI.danmaku.color} !important; }`;
+      }
+    }
+  }
+
+  return customCSS;
+}
+
+export async function injectStyles(themeManager: { applyTheme: (theme: string) => Promise<boolean> }, config: Config): Promise<void> {
+  try {
+    const success = await themeManager.applyTheme(config.theme);
+    if (!success) {
+      logger.warn('主题应用失败，使用备用样式注入');
+
+      const oldStyle = document.getElementById('douyin-ui-customizer-styles');
+      if (oldStyle) {
+        oldStyle.remove();
+      }
+
+      const styleElement = document.createElement('style');
+      styleElement.id = 'douyin-ui-customizer-styles';
+      styleElement.textContent = '';
+      document.head.appendChild(styleElement);
+    }
+
+    const customStyle = document.createElement('style');
+    customStyle.id = 'douyin-ui-customizer-custom';
+    customStyle.textContent = generateCustomStyles(config);
+    document.head.appendChild(customStyle);
+
+    eventEmitter.emit('tool.styles.updated', { theme: config.theme });
+  } catch (error) {
+    logger.error('注入样式失败:', error);
+  }
+}
+
+export function injectBasicStyles(): void {
+  const basicStyles = `
+    .douyin-ui-customizer-panel {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .douyin-ui-hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      width: 0 !important;
+      height: 0 !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+  `;
+  injectStyle(basicStyles);
+}
 
 import { logger } from '../utils/logger.ts';
 import { getElement, getElements } from '../utils/dom.ts';
 
-/**
- * 元素控制器类
- */
+interface ElementInfo {
+  id: string;
+  selector: string;
+  type: string;
+  description: string;
+}
+
+interface OriginalStyle {
+  [key: string]: string;
+}
+
 class ElementController {
-  /**
-   * 构造函数
-   */
+  private originalStyles: WeakMap<HTMLElement, OriginalStyle>;
+  private elementVisibility: WeakMap<HTMLElement, boolean>;
+
   constructor() {
-    // 存储被操作元素的原始样式信息
     this.originalStyles = new WeakMap();
-    // 存储元素的显示/隐藏状态
     this.elementVisibility = new WeakMap();
     logger.info('ElementController 初始化成功');
   }
 
-  /**
-   * 隐藏指定的元素，使用CSS变换实现平滑过渡效果
-   * @param {String|Element} selector - CSS选择器或DOM元素，支持单个元素或元素集合
-   * @returns {Promise<Boolean>} 隐藏是否成功
-   */
-  async hideElement(selector) {
+  async hideElement(selector: string | HTMLElement): Promise<boolean> {
     try {
       const elements = this._resolveElements(selector);
       
@@ -2136,23 +2552,18 @@ class ElementController {
       }
 
       for (const element of elements) {
-        // 保存原始样式
         this._saveOriginalStyle(element);
         
-        // 添加过渡效果
         element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
         element.style.opacity = '0';
         element.style.transform = 'translateY(-10px)';
         element.style.pointerEvents = 'none';
         
-        // 标记为隐藏
         this.elementVisibility.set(element, false);
       }
 
-      // 等待过渡动画完成
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // 完全隐藏元素
       for (const element of elements) {
         element.style.display = 'none';
       }
@@ -2165,12 +2576,7 @@ class ElementController {
     }
   }
 
-  /**
-   * 显示指定的元素，恢复之前隐藏的元素状态
-   * @param {String|Element} selector - CSS选择器或DOM元素，支持单个元素或元素集合
-   * @returns {Promise<Boolean>} 显示是否成功
-   */
-  async showElement(selector) {
+  async showElement(selector: string | HTMLElement): Promise<boolean> {
     try {
       const elements = this._resolveElements(selector);
       
@@ -2180,32 +2586,25 @@ class ElementController {
       }
 
       for (const element of elements) {
-        // 移除display: none
         element.style.display = '';
         
-        // 添加过渡效果
         element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
         element.style.opacity = '0';
         element.style.transform = 'translateY(-10px)';
       }
 
-      // 强制重排
       await new Promise(resolve => setTimeout(resolve, 10));
       
-      // 显示元素
       for (const element of elements) {
         element.style.opacity = '1';
         element.style.transform = 'translateY(0)';
         element.style.pointerEvents = '';
         
-        // 标记为显示
         this.elementVisibility.set(element, true);
       }
 
-      // 等待过渡动画完成
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // 清理过渡样式
       for (const element of elements) {
         element.style.transition = '';
       }
@@ -2218,12 +2617,7 @@ class ElementController {
     }
   }
 
-  /**
-   * 切换元素的显示/隐藏状态，根据当前状态自动切换
-   * @param {String|Element} selector - CSS选择器或DOM元素，支持单个元素或元素集合
-   * @returns {Promise<Boolean>} 切换后的显示状态（true表示显示，false表示隐藏）
-   */
-  async toggleElement(selector) {
+  async toggleElement(selector: string | HTMLElement): Promise<boolean> {
     try {
       const elements = this._resolveElements(selector);
       
@@ -2232,7 +2626,6 @@ class ElementController {
         return false;
       }
 
-      // 确定是否需要显示或隐藏（基于第一个元素的状态）
       const firstElement = elements[0];
       const currentVisibility = this.elementVisibility.get(firstElement) !== false && 
                                firstElement.style.display !== 'none';
@@ -2251,13 +2644,7 @@ class ElementController {
     }
   }
 
-  /**
-   * 修改元素的样式
-   * @param {String|Element} selector - CSS选择器或DOM元素
-   * @param {Object} styles - 样式对象
-   * @returns {Boolean} 操作是否成功
-   */
-  modifyElementStyle(selector, styles) {
+  modifyElementStyle(selector: string | HTMLElement, styles: Record<string, string>): boolean {
     try {
       const elements = this._resolveElements(selector);
       
@@ -2267,12 +2654,10 @@ class ElementController {
       }
 
       for (const element of elements) {
-        // 保存原始样式（如果还没有保存）
         if (!this.originalStyles.has(element)) {
           this._saveOriginalStyle(element);
         }
 
-        // 应用新样式
         Object.assign(element.style, styles);
       }
 
@@ -2284,12 +2669,7 @@ class ElementController {
     }
   }
 
-  /**
-   * 重置元素的样式为默认状态
-   * @param {String|Element} selector - CSS选择器或DOM元素
-   * @returns {Boolean} 操作是否成功
-   */
-  resetElementStyle(selector) {
+  resetElementStyle(selector: string | HTMLElement): boolean {
     try {
       const elements = this._resolveElements(selector);
       
@@ -2299,23 +2679,18 @@ class ElementController {
       }
 
       for (const element of elements) {
-        // 如果有保存的原始样式，则恢复
         if (this.originalStyles.has(element)) {
           const originalStyle = this.originalStyles.get(element);
           
-          // 清除所有样式
           element.removeAttribute('style');
           
-          // 恢复必要的样式属性（如果有）
           if (originalStyle) {
             Object.assign(element.style, originalStyle);
           }
           
-          // 清除存储的信息
           this.originalStyles.delete(element);
           this.elementVisibility.delete(element);
         } else {
-          // 直接清除样式
           element.removeAttribute('style');
         }
       }
@@ -2328,16 +2703,11 @@ class ElementController {
     }
   }
 
-  /**
-   * 识别页面中的所有可操作元素
-   * @returns {Array<{id: String, selector: String, type: String, description: String}>} 元素列表
-   */
-  identifyElements() {
+  identifyElements(): ElementInfo[] {
     try {
-      const elements = [];
+      const elements: ElementInfo[] = [];
       let elementId = 1;
 
-      // 识别按钮元素
       const buttons = getElements('button, [role="button"], .btn, .button, .action');
       buttons.forEach(button => {
         const selector = this._generateSelector(button);
@@ -2350,7 +2720,6 @@ class ElementController {
         });
       });
 
-      // 识别输入元素
       const inputs = getElements('input, textarea, select');
       inputs.forEach(input => {
         const selector = this._generateSelector(input);
@@ -2363,7 +2732,6 @@ class ElementController {
         });
       });
 
-      // 识别容器元素
       const containers = getElements('.container, .wrapper, .section, .card, .panel');
       containers.forEach(container => {
         const selector = this._generateSelector(container);
@@ -2375,7 +2743,6 @@ class ElementController {
         });
       });
 
-      // 识别视频相关元素
       const videoElements = getElements('video, .video, .player');
       videoElements.forEach(video => {
         const selector = this._generateSelector(video);
@@ -2395,13 +2762,7 @@ class ElementController {
     }
   }
 
-  /**
-   * 解析选择器或元素为元素数组
-   * @private
-   * @param {String|Element|Array<Element>} selector - CSS选择器或DOM元素或元素数组
-   * @returns {Array<Element>} 元素数组
-   */
-  _resolveElements(selector) {
+  private _resolveElements(selector: string | HTMLElement): HTMLElement[] {
     if (!selector) {
       return [];
     }
@@ -2410,24 +2771,15 @@ class ElementController {
       return getElements(selector);
     } else if (selector.nodeType === 1) {
       return [selector];
-    } else if (Array.isArray(selector)) {
-      return selector.filter(el => el && el.nodeType === 1);
     }
 
     return [];
   }
 
-  /**
-   * 保存元素的原始样式
-   * @private
-   * @param {Element} element - DOM元素
-   */
-  _saveOriginalStyle(element) {
+  private _saveOriginalStyle(element: HTMLElement): void {
     if (!this.originalStyles.has(element)) {
-      const computedStyle = window.getComputedStyle(element);
-      const originalStyle = {};
+      const originalStyle: OriginalStyle = {};
       
-      // 保存关键样式属性
       const importantProperties = ['display', 'opacity', 'transform', 'pointer-events'];
       importantProperties.forEach(prop => {
         originalStyle[prop] = element.style[prop];
@@ -2437,21 +2789,13 @@ class ElementController {
     }
   }
 
-  /**
-   * 生成元素的唯一选择器
-   * @private
-   * @param {Element} element - DOM元素
-   * @returns {String} CSS选择器
-   */
-  _generateSelector(element) {
+  private _generateSelector(element: HTMLElement): string {
     if (!element) return '';
 
-    // 如果有id，优先使用id选择器
     if (element.id) {
       return `#${element.id}`;
     }
 
-    // 如果有特定的类，使用类选择器
     const specificClasses = Array.from(element.classList).filter(cls => 
       /^(btn|input|card|panel|container|video)/i.test(cls)
     );
@@ -2459,7 +2803,6 @@ class ElementController {
       return `.${specificClasses[0]}`;
     }
 
-    // 使用标签名和位置
     const tagName = element.tagName.toLowerCase();
     const siblings = element.parentNode ? Array.from(element.parentNode.children) : [];
     const index = siblings.indexOf(element);
@@ -2471,45 +2814,47 @@ class ElementController {
     return tagName;
   }
 
-  /**
-   * 获取元素的标签文本
-   * @private
-   * @param {Element} element - DOM元素
-   * @returns {String} 标签文本
-   */
-  _getElementLabel(element) {
-    // 查找关联的label元素
+  private _getElementLabel(element: HTMLElement): string | null {
     const id = element.id;
     if (id) {
       const label = getElement(`label[for="${id}"]`);
       if (label) return label.textContent.trim();
     }
 
-    // 查找父元素中的label
     if (element.closest('label')) {
-      return element.closest('label').textContent.trim();
+      return element.closest('label')!.textContent.trim();
     }
 
-    // 返回placeholder或name属性
-    return element.getAttribute('placeholder') || element.getAttribute('name');
+    return element.getAttribute('placeholder') || element.getAttribute('name') || null;
   }
 }
 
-// 创建并导出元素控制器实例
 const elementController = new ElementController();
 
 export { ElementController };
 export default elementController;
 
-// src/controllers/layoutController.js
-
 import { logger } from '../utils/logger.ts';
 import { getElement, getElements, createElement } from '../utils/dom.ts';
 import elementController from './elementController.js';
 
-// 预定义布局配置
-const PREDEFINED_LAYOUTS = {
-  // 紧凑布局 - 最小化界面元素，最大化内容显示区域
+interface LayoutRule {
+  selector: string;
+  action?: 'hide';
+  styles?: Record<string, string>;
+}
+
+interface Layout {
+  name: string;
+  label: string;
+  description: string;
+  rules: LayoutRule[];
+  isCustom?: boolean;
+  createdAt?: string;
+  importedAt?: string;
+}
+
+const PREDEFINED_LAYOUTS: Record<string, Layout> = {
   compact: {
     name: 'compact',
     label: '紧凑布局',
@@ -2523,7 +2868,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 全屏布局 - 隐藏所有非必要元素，专注于内容
   fullscreen: {
     name: 'fullscreen',
     label: '全屏布局',
@@ -2535,7 +2879,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 默认布局 - 标准的三栏布局
   standard: {
     name: 'standard',
     label: '标准布局',
@@ -2548,7 +2891,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 阅读模式 - 优化文本阅读体验
   reader: {
     name: 'reader',
     label: '阅读模式',
@@ -2561,7 +2903,6 @@ const PREDEFINED_LAYOUTS = {
     ]
   },
   
-  // 视频模式 - 优化视频观看体验
   video: {
     name: 'video',
     label: '视频模式',
@@ -2575,33 +2916,25 @@ const PREDEFINED_LAYOUTS = {
   }
 };
 
-/**
- * 布局控制器类
- */
 class LayoutController {
-  /**
-   * 构造函数
-   */
+  private layouts: Record<string, Layout>;
+  private currentLayout: string | null;
+  private customLayouts: Record<string, Layout>;
+  private layoutPrefix: string;
+
   constructor() {
     this.layouts = { ...PREDEFINED_LAYOUTS };
     this.currentLayout = null;
     this.customLayouts = {};
     this.layoutPrefix = 'douyin_ui_customizer_layout_';
     
-    // 初始化时从存储加载自定义布局
     this._loadCustomLayouts();
     
     logger.info('LayoutController 初始化成功');
   }
 
-  /**
-   * 应用预定义的布局模板到当前页面
-   * @param {String} layoutName - 布局名称，必须是预定义布局之一
-   * @returns {Promise<Boolean>} 应用是否成功
-   */
-  async applyLayout(layoutName) {
+  async applyLayout(layoutName: string): Promise<boolean> {
     try {
-      // 验证布局名称
       const layout = this.layouts[layoutName];
       if (!layout) {
         logger.warn(`布局 ${layoutName} 不存在`);
@@ -2610,10 +2943,8 @@ class LayoutController {
 
       logger.info(`开始应用布局: ${layout.label}`);
 
-      // 首先重置所有元素样式
       await this.resetLayout();
 
-      // 应用布局规则
       for (const rule of layout.rules) {
         if (rule.action === 'hide') {
           await elementController.hideElement(rule.selector);
@@ -2622,13 +2953,10 @@ class LayoutController {
         }
       }
 
-      // 更新当前布局
       this.currentLayout = layoutName;
       
-      // 保存当前布局设置
       localStorage.setItem(`${this.layoutPrefix}current`, layoutName);
       
-      // 添加布局类到body
       document.body.classList.remove(
         ...Object.keys(this.layouts).map(l => `douyin-ui-customizer-layout-${l}`)
       );
@@ -2642,15 +2970,8 @@ class LayoutController {
     }
   }
 
-  /**
-   * 保存用户自定义布局配置，可在后续应用或分享给其他用户
-   * @param {String} layoutName - 布局名称，必须唯一且不为空
-   * @param {Object} layoutConfig - 布局配置对象，包含各页面元素的位置、大小等信息
-   * @returns {Boolean} 保存是否成功
-   */
-  saveLayout(layoutName, layoutConfig) {
+  saveLayout(layoutName: string, layoutConfig: Partial<Layout>): boolean {
     try {
-      // 验证参数
       if (!layoutName || typeof layoutName !== 'string' || layoutName.trim() === '') {
         throw new Error('布局名称不能为空');
       }
@@ -2659,13 +2980,11 @@ class LayoutController {
         throw new Error('布局配置必须是有效的对象');
       }
 
-      // 不允许覆盖预定义布局
       if (PREDEFINED_LAYOUTS[layoutName]) {
         throw new Error('不能覆盖预定义布局');
       }
 
-      // 创建布局配置
-      const layout = {
+      const layout: Layout = {
         name: layoutName,
         label: layoutConfig.label || layoutName,
         description: layoutConfig.description || '自定义布局',
@@ -2674,11 +2993,9 @@ class LayoutController {
         createdAt: new Date().toISOString()
       };
 
-      // 保存布局
       this.layouts[layoutName] = layout;
       this.customLayouts[layoutName] = layout;
       
-      // 持久化保存
       this._saveCustomLayouts();
 
       logger.info(`自定义布局保存成功: ${layout.label}`);
@@ -2689,39 +3006,24 @@ class LayoutController {
     }
   }
 
-  /**
-   * 获取所有可用的布局
-   * @returns {Array<Object>} 布局对象数组
-   */
-  getAvailableLayouts() {
+  getAvailableLayouts(): Layout[] {
     return Object.values(this.layouts);
   }
 
-  /**
-   * 获取当前应用的布局名称
-   * @returns {String|null} 当前布局名称
-   */
-  getCurrentLayout() {
+  getCurrentLayout(): string | null {
     return this.currentLayout;
   }
 
-  /**
-   * 重置布局为默认状态
-   * @returns {Promise<Boolean>} 重置是否成功
-   */
-  async resetLayout() {
+  async resetLayout(): Promise<boolean> {
     try {
-      // 移除所有布局类
       Object.keys(this.layouts).forEach(layoutName => {
         document.body.classList.remove(`douyin-ui-customizer-layout-${layoutName}`);
       });
 
-      // 重置所有可能被布局修改过的元素
-      const allSelectors = new Set();
+      const allSelectors = new Set<string>();
       Object.values(this.layouts).forEach(layout => {
         layout.rules.forEach(rule => {
           if (rule.selector) {
-            // 解析可能包含多个选择器的字符串
             rule.selector.split(',').forEach(selector => {
               allSelectors.add(selector.trim());
             });
@@ -2729,13 +3031,11 @@ class LayoutController {
         });
       });
 
-      // 重置每个选择器匹配的元素
       for (const selector of allSelectors) {
         await elementController.showElement(selector);
         elementController.resetElementStyle(selector);
       }
 
-      // 清除当前布局
       this.currentLayout = null;
       localStorage.removeItem(`${this.layoutPrefix}current`);
 
@@ -2747,35 +3047,25 @@ class LayoutController {
     }
   }
 
-  /**
-   * 删除自定义布局
-   * @param {String} layoutName - 布局名称
-   * @returns {Boolean} 删除是否成功
-   */
-  deleteLayout(layoutName) {
+  deleteLayout(layoutName: string): boolean {
     try {
-      // 不允许删除预定义布局
       if (PREDEFINED_LAYOUTS[layoutName]) {
         logger.warn(`不能删除预定义布局: ${layoutName}`);
         return false;
       }
 
-      // 检查布局是否存在
       if (!this.customLayouts[layoutName]) {
         logger.warn(`自定义布局不存在: ${layoutName}`);
         return false;
       }
 
-      // 如果正在使用要删除的布局，则重置布局
       if (this.currentLayout === layoutName) {
         this.resetLayout();
       }
 
-      // 删除布局
       delete this.layouts[layoutName];
       delete this.customLayouts[layoutName];
       
-      // 更新存储
       this._saveCustomLayouts();
 
       logger.info(`布局删除成功: ${layoutName}`);
@@ -2786,12 +3076,7 @@ class LayoutController {
     }
   }
 
-  /**
-   * 导出布局配置
-   * @param {String} layoutName - 布局名称
-   * @returns {String|null} JSON格式的布局配置
-   */
-  exportLayout(layoutName) {
+  exportLayout(layoutName: string): string | null {
     try {
       const layout = this.layouts[layoutName];
       if (!layout) {
@@ -2806,29 +3091,20 @@ class LayoutController {
     }
   }
 
-  /**
-   * 导入布局配置
-   * @param {String} layoutJson - JSON格式的布局配置
-   * @returns {Boolean} 导入是否成功
-   */
-  importLayout(layoutJson) {
+  importLayout(layoutJson: string): boolean {
     try {
-      const layout = JSON.parse(layoutJson);
+      const layout = JSON.parse(layoutJson) as Layout;
       
-      // 验证布局配置
       if (!layout.name || !layout.rules || !Array.isArray(layout.rules)) {
         throw new Error('无效的布局配置格式');
       }
 
-      // 确保是自定义布局
       layout.isCustom = true;
       layout.importedAt = new Date().toISOString();
 
-      // 保存布局
       this.layouts[layout.name] = layout;
       this.customLayouts[layout.name] = layout;
       
-      // 持久化保存
       this._saveCustomLayouts();
 
       logger.info(`布局导入成功: ${layout.label || layout.name}`);
@@ -2839,17 +3115,12 @@ class LayoutController {
     }
   }
 
-  /**
-   * 从本地存储加载自定义布局
-   * @private
-   */
-  _loadCustomLayouts() {
+  private _loadCustomLayouts(): void {
     try {
       const savedLayouts = localStorage.getItem(`${this.layoutPrefix}custom`);
       if (savedLayouts) {
-        const layouts = JSON.parse(savedLayouts);
+        const layouts = JSON.parse(savedLayouts) as Record<string, Layout>;
         
-        // 合并自定义布局
         Object.entries(layouts).forEach(([name, layout]) => {
           if (!PREDEFINED_LAYOUTS[name]) {
             this.layouts[name] = layout;
@@ -2864,11 +3135,7 @@ class LayoutController {
     }
   }
 
-  /**
-   * 保存自定义布局到本地存储
-   * @private
-   */
-  _saveCustomLayouts() {
+  private _saveCustomLayouts(): void {
     try {
       localStorage.setItem(`${this.layoutPrefix}custom`, JSON.stringify(this.customLayouts));
     } catch (error) {
@@ -2877,22 +3144,14 @@ class LayoutController {
   }
 }
 
-// 创建并导出布局控制器实例
 const layoutController = new LayoutController();
 
 export { LayoutController };
 export default layoutController;
 
-// src/styles/index.js
-
-// 主题切换模块
 export { ThemeManager } from './theme.js';
 export { default as themeManager } from './theme.js';
 
-/**
- * 样式集合
- * 提供所有样式相关功能的统一访问
- */
 export const styles = {
   ThemeManager,
   themeManager
@@ -2900,13 +3159,20 @@ export const styles = {
 
 export default styles;
 
-// src/styles/theme.js
-
 import logger from '../utils/logger.ts';
 import { injectStyle } from '../utils/dom.ts';
 
-// 默认主题配置
-const DEFAULT_THEMES = {
+interface ThemeVariables {
+  [key: string]: string;
+}
+
+interface Theme {
+  name: string;
+  label: string;
+  variables: ThemeVariables;
+}
+
+const DEFAULT_THEMES: Record<string, Theme> = {
   light: {
     name: 'light',
     label: '浅色模式',
@@ -2984,13 +3250,19 @@ const DEFAULT_THEMES = {
   }
 };
 
-/**
- * 主题管理器类
- */
+interface ThemeConfig {
+  name: string;
+  label: string;
+  colors?: Record<string, string>;
+  fonts?: Record<string, string>;
+}
+
 class ThemeManager {
-  /**
-   * 构造函数
-   */
+  private themes: Record<string, Theme>;
+  private currentTheme: string | null;
+  private styleElement: HTMLStyleElement | null;
+  private themePrefix: string;
+
   constructor() {
     this.themes = { ...DEFAULT_THEMES };
     this.currentTheme = null;
@@ -2998,38 +3270,25 @@ class ThemeManager {
     this.themePrefix = 'douyin_ui_customizer_theme_';
   }
 
-  /**
-   * 初始化主题管理器
-   */
-  init() {
+  init(): void {
     try {
-      // 尝试从存储中获取保存的主题
       const savedTheme = localStorage.getItem(`${this.themePrefix}current`);
       
-      // 如果有保存的主题且存在，则应用
       if (savedTheme && this.themes[savedTheme]) {
         this.switchTheme(savedTheme);
       } else {
-        // 否则使用默认主题（浅色）
         this.switchTheme('light');
       }
       
       logger.info('主题管理器初始化成功');
     } catch (error) {
       logger.error('主题管理器初始化失败:', error);
-      // 失败时使用默认主题
       this.switchTheme('light');
     }
   }
 
-  /**
-   * 切换到指定主题
-   * @param {string} themeName - 主题名称
-   * @returns {boolean} 是否切换成功
-   */
-  switchTheme(themeName) {
+  switchTheme(themeName: string): boolean {
     try {
-      // 验证主题是否存在
       if (!this.themes[themeName]) {
         logger.warn(`主题 ${themeName} 不存在，使用默认主题`);
         themeName = 'light';
@@ -3037,35 +3296,27 @@ class ThemeManager {
 
       const theme = this.themes[themeName];
       
-      // 生成CSS变量样式
       const cssVariables = Object.entries(theme.variables)
         .map(([key, value]) => `${key}: ${value};`)
         .join('\n  ');
       
-      // 生成CSS
       const css = `:root {
   ${cssVariables}
 }
 
-/* 主题特定样式 */
 .douyin-ui-customizer-theme-${themeName} {}
 `;
       
-      // 移除旧的样式元素
       if (this.styleElement && this.styleElement.parentNode) {
         this.styleElement.parentNode.removeChild(this.styleElement);
       }
       
-      // 注入新的样式
       this.styleElement = injectStyle(css);
       
-      // 更新当前主题
       this.currentTheme = themeName;
       
-      // 保存主题设置
       localStorage.setItem(`${this.themePrefix}current`, themeName);
       
-      // 添加主题类到body
       document.body.classList.remove(
         ...Object.keys(this.themes).map(t => `douyin-ui-customizer-theme-${t}`)
       );
@@ -3079,52 +3330,35 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 获取当前主题名称
-   * @returns {string} 当前主题名称
-   */
-  getCurrentTheme() {
+  getCurrentTheme(): string {
     return this.currentTheme || 'light';
   }
 
-  /**
-   * 获取所有可用主题
-   * @returns {Object[]} 主题对象数组
-   */
-  getAvailableThemes() {
+  getAvailableThemes(): Theme[] {
     return Object.values(this.themes);
   }
 
-  /**
-   * 创建新的自定义主题
-   * @param {Object} themeConfig - 主题配置对象，包含name、label、colors和fonts属性
-   * @returns {String} 创建的主题ID
-   */
-  createTheme(themeConfig) {
+  createTheme(themeConfig: ThemeConfig): string | null {
     try {
       if (!themeConfig.name || !themeConfig.label) {
         throw new Error('主题配置必须包含name和label属性');
       }
 
-      // 转换colors和fonts为CSS变量
-      const variables = {};
+      const variables: ThemeVariables = {};
       
-      // 处理颜色变量
       if (themeConfig.colors) {
         Object.entries(themeConfig.colors).forEach(([key, value]) => {
           variables[`--${key}`] = value;
         });
       }
       
-      // 处理字体变量
       if (themeConfig.fonts) {
         Object.entries(themeConfig.fonts).forEach(([key, value]) => {
           variables[`--font-${key}`] = value;
         });
       }
 
-      // 注册新主题
-      const theme = {
+      const theme: Theme = {
         name: themeConfig.name,
         label: themeConfig.label,
         variables: variables
@@ -3139,31 +3373,22 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 删除自定义主题
-   * @param {String} themeName - 主题名称
-   * @returns {Boolean} 删除是否成功
-   */
-  deleteTheme(themeName) {
+  deleteTheme(themeName: string): boolean {
     try {
-      // 不允许删除默认主题
       if (DEFAULT_THEMES[themeName]) {
         logger.warn(`不能删除默认主题: ${themeName}`);
         return false;
       }
 
-      // 检查主题是否存在
       if (!this.themes[themeName]) {
         logger.warn(`主题不存在: ${themeName}`);
         return false;
       }
 
-      // 如果正在使用要删除的主题，则切换到默认主题
       if (this.currentTheme === themeName) {
         this.switchTheme('light');
       }
 
-      // 删除主题
       delete this.themes[themeName];
       logger.info(`主题删除成功: ${themeName}`);
       return true;
@@ -3173,27 +3398,16 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 获取主题配置
-   * @param {string} themeName - 主题名称
-   * @returns {Object|null} 主题配置对象
-   */
-  getThemeConfig(themeName) {
+  getTheme(themeName: string): Theme | null {
     return this.themes[themeName] || null;
   }
 
-  /**
-   * 注册新主题
-   * @param {Object} theme - 主题配置对象
-   * @returns {boolean} 是否注册成功
-   */
-  registerTheme(theme) {
+  registerTheme(theme: Theme): boolean {
     try {
       if (!theme.name || !theme.variables) {
         throw new Error('主题配置必须包含name和variables属性');
       }
       
-      // 验证变量格式
       if (typeof theme.variables !== 'object') {
         throw new Error('variables必须是对象');
       }
@@ -3212,12 +3426,7 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 导出主题配置
-   * @param {string} themeName - 主题名称
-   * @returns {string|null} JSON格式的主题配置
-   */
-  exportTheme(themeName) {
+  exportTheme(themeName: string): string | null {
     try {
       const theme = this.themes[themeName];
       if (!theme) return null;
@@ -3229,14 +3438,9 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 导入主题配置
-   * @param {string} themeJson - JSON格式的主题配置
-   * @returns {boolean} 是否导入成功
-   */
-  importTheme(themeJson) {
+  importTheme(themeJson: string): boolean {
     try {
-      const theme = JSON.parse(themeJson);
+      const theme = JSON.parse(themeJson) as Theme;
       return this.registerTheme(theme);
     } catch (error) {
       logger.error('主题导入失败:', error);
@@ -3244,12 +3448,7 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 生成主题预览样式
-   * @param {string} themeName - 主题名称
-   * @returns {string|null} 预览样式字符串
-   */
-  generatePreviewStyle(themeName) {
+  generatePreviewStyle(themeName: string): string | null {
     const theme = this.themes[themeName];
     if (!theme) return null;
     
@@ -3258,22 +3457,15 @@ class ThemeManager {
       .join('; ');
   }
 
-  /**
-   * 应用主题到特定元素
-   * @param {HTMLElement} element - 目标元素
-   * @param {string} themeName - 主题名称
-   */
-  applyThemeToElement(element, themeName) {
+  applyThemeToElement(element: HTMLElement, themeName: string): void {
     try {
       const theme = this.themes[themeName];
       if (!theme || !element) return;
       
-      // 应用CSS变量
       Object.entries(theme.variables).forEach(([key, value]) => {
         element.style.setProperty(key, value);
       });
       
-      // 添加主题类
       element.classList.remove(
         ...Object.keys(this.themes).map(t => `douyin-ui-customizer-theme-${t}`)
       );
@@ -3283,30 +3475,22 @@ class ThemeManager {
     }
   }
 
-  /**
-   * 重置所有主题设置
-   */
-  reset() {
+  reset(): void {
     try {
-      // 移除样式元素
       if (this.styleElement && this.styleElement.parentNode) {
         this.styleElement.parentNode.removeChild(this.styleElement);
       }
       
-      // 移除主题类
       Object.keys(this.themes).forEach(themeName => {
         document.body.classList.remove(`douyin-ui-customizer-theme-${themeName}`);
       });
       
-      // 重置主题配置
       this.themes = { ...DEFAULT_THEMES };
       this.currentTheme = null;
       this.styleElement = null;
       
-      // 清除存储
       localStorage.removeItem(`${this.themePrefix}current`);
       
-      // 重新初始化
       this.init();
       
       logger.info('主题设置已重置');
@@ -3314,15 +3498,1234 @@ class ThemeManager {
       logger.error('重置主题设置失败:', error);
     }
   }
+
+  on(event: string, callback: (data: unknown) => void): void {
+    if (event === 'themeChanged') {
+      const originalSwitchTheme = this.switchTheme.bind(this);
+      this.switchTheme = (themeName: string): boolean => {
+        const result = originalSwitchTheme(themeName);
+        if (result) {
+          callback(themeName);
+        }
+        return result;
+      };
+    }
+  }
+
+  applyTheme(themeName: string): Promise<boolean> {
+    return Promise.resolve(this.switchTheme(themeName));
+  }
+
+  listThemes(): Theme[] {
+    return this.getAvailableThemes();
+  }
 }
 
-// 创建并导出主题管理器实例
 const themeManager = new ThemeManager();
 
 export { ThemeManager };
 export default themeManager;
 
-// src/ui_manager.js v2.0.1
+export * from './panels/settingsPanel.ts';
+export * from './panels/settingsEvents.ts';
+export * from './core/panelDrag.ts';
+export * from './customizations/videoCustomizations.ts';
+export * from './customizations/liveCustomizations.ts';
+
+export function makePanelDraggable(panel: HTMLElement): void {
+  if (!panel) return;
+  const header = panel.querySelector('.panel-header');
+  if (!header) return;
+
+  panel.style.transform = 'none';
+  let isDragging = false;
+  let offsetX: number, offsetY: number;
+
+  header.addEventListener('mousedown', (e: MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+
+    isDragging = true;
+    const rect = panel.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    panel.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e: MouseEvent) => {
+    if (!isDragging) return;
+
+    let newLeft = e.clientX - offsetX;
+    let newTop = e.clientY - offsetY;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const panelWidth = panel.offsetWidth;
+    const panelHeight = panel.offsetHeight;
+
+    newLeft = Math.max(0, Math.min(newLeft, viewportWidth - panelWidth));
+    newTop = Math.max(0, Math.min(newTop, viewportHeight - panelHeight));
+
+    panel.style.left = newLeft + 'px';
+    panel.style.top = newTop + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.classList.remove('dragging');
+    restrictPanelToViewport(panel);
+  });
+
+  header.addEventListener('touchstart', (e: TouchEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    isDragging = true;
+    const touch = e.touches[0];
+    const rect = panel.getBoundingClientRect();
+    offsetX = touch.clientX - rect.left;
+    offsetY = touch.clientY - rect.top;
+
+    panel.classList.add('dragging');
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchmove', (e: TouchEvent) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    let newLeft = touch.clientX - offsetX;
+    let newTop = touch.clientY - offsetY;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const panelWidth = panel.offsetWidth;
+    const panelHeight = panel.offsetHeight;
+
+    newLeft = Math.max(0, Math.min(newLeft, viewportWidth - panelWidth));
+    newTop = Math.max(0, Math.min(newTop, viewportHeight - panelHeight));
+
+    panel.style.left = newLeft + 'px';
+    panel.style.top = newTop + 'px';
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.classList.remove('dragging');
+    restrictPanelToViewport(panel);
+  });
+}
+
+export function restrictPanelToViewport(panel: HTMLElement): void {
+  if (!panel) return;
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const rect = panel.getBoundingClientRect();
+  const panelWidth = rect.width;
+  const panelHeight = rect.height;
+
+  let left = rect.left;
+  let top = rect.top;
+
+  if (left < 0) {
+    left = 0;
+  } else if (left + panelWidth > viewportWidth) {
+    left = viewportWidth - panelWidth;
+  }
+
+  if (top < 0) {
+    top = 0;
+  } else if (top + panelHeight > viewportHeight) {
+    top = viewportHeight - panelHeight;
+  }
+
+  panel.style.left = left + 'px';
+  panel.style.top = top + 'px';
+}
+
+import { createElement, injectStyle } from '../../utils/dom.ts';
+import logger from '../../utils/logger.ts';
+import type { Config } from '../../config.js';
+
+export function createSettingsPanelContent(config: Config): string {
+  return `
+    <div class="panel-header">
+      <h2>抖音UI定制设置</h2>
+      <button class="close-btn">×</button>
+    </div>
+    <div class="panel-content">
+      <div class="settings-tabs">
+        <div>
+          <button class="tab-btn active" data-tab="general">通用设置</button>
+          <button class="tab-btn" data-tab="video">短视频设置</button>
+        </div>
+        <div>
+          <button class="tab-btn" data-tab="live">直播间设置</button>
+          <button class="tab-btn" data-tab="advanced">高级设置</button>
+        </div>
+        <div>
+          <button class="tab-btn" data-tab="auto-executor">自动执行</button>
+          <button class="tab-btn" data-tab="import-export">导入导出</button>
+        </div>
+      </div>
+      
+      <div class="tab-content active" id="general-tab">
+        ${createGeneralSettings(config)}
+      </div>
+      
+      <div class="tab-content" id="video-tab">
+        ${createVideoSettings(config)}
+      </div>
+      
+      <div class="tab-content" id="live-tab">
+        ${createLiveSettings(config)}
+      </div>
+      
+      <div class="tab-content" id="auto-executor-tab">
+        ${createAutoExecutorSettings()}
+      </div>
+      
+      <div class="tab-content" id="import-export-tab">
+        ${createImportExportSettings()}
+      </div>
+      
+      <div class="tab-content" id="advanced-tab">
+        ${createAdvancedSettings(config)}
+      </div>
+    </div>
+    <div class="panel-footer">
+      <div>
+        <button class="save-btn">保存设置</button>
+        <button class="reset-btn">重置为默认</button>
+      </div>
+    </div>
+  `;
+}
+
+export function createGeneralSettings(config: Config): string {
+  return `
+    <div class="setting-group">
+      <h3>主题设置</h3>
+      <label>
+        <input type="radio" name="theme" value="light" ${config.theme === 'light' ? 'checked' : ''} />
+        浅色主题
+      </label>
+      <label>
+        <input type="radio" name="theme" value="dark" ${config.theme === 'dark' ? 'checked' : ''} />
+        深色主题
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>播放设置</h3>
+      <label>
+        <input type="checkbox" id="autoPlay" ${config.general?.autoPlay ? 'checked' : ''} />
+        自动播放视频
+      </label>
+      <label>
+        <input type="checkbox" id="autoScroll" ${config.general?.autoScroll ? 'checked' : ''} />
+        自动滚动到下一个视频
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>功能设置</h3>
+      <label>
+        <input type="checkbox" id="keyboardShortcuts" ${config.general?.keyboardShortcuts ? 'checked' : ''} />
+        启用键盘快捷键
+      </label>
+      <label>
+        <input type="checkbox" id="notifications" ${config.general?.notifications ? 'checked' : ''} />
+        启用通知提醒
+      </label>
+    </div>
+  `;
+}
+
+export function createVideoSettings(config: Config): string {
+  return `
+    <div class="setting-group">
+      <h3>显示元素</h3>
+      <label>
+        <input type="checkbox" id="showLikeButton" ${config.videoUI?.showLikeButton ?? true ? 'checked' : ''} />
+        显示点赞按钮
+      </label>
+      <label>
+        <input type="checkbox" id="showCommentButton" ${config.videoUI?.showCommentButton ?? true ? 'checked' : ''} />
+        显示评论按钮
+      </label>
+      <label>
+        <input type="checkbox" id="showShareButton" ${config.videoUI?.showShareButton ?? true ? 'checked' : ''} />
+        显示分享按钮
+      </label>
+      <label>
+        <input type="checkbox" id="showAuthorInfo" ${config.videoUI?.showAuthorInfo ?? true ? 'checked' : ''} />
+        显示作者信息
+      </label>
+      <label>
+        <input type="checkbox" id="showMusicInfo" ${config.videoUI?.showMusicInfo ?? true ? 'checked' : ''} />
+        显示音乐信息
+      </label>
+      <label>
+        <input type="checkbox" id="showDescription" ${config.videoUI?.showDescription ?? true ? 'checked' : ''} />
+        显示视频描述
+      </label>
+      <label>
+        <input type="checkbox" id="showRecommendations" ${config.videoUI?.showRecommendations ?? true ? 'checked' : ''} />
+        显示推荐视频
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>控制栏设置</h3>
+      <label>
+        <input type="checkbox" id="controlBar-show" ${config.videoUI?.controlBar?.show ?? true ? 'checked' : ''} />
+        显示控制栏
+      </label>
+      <label>
+        <input type="checkbox" id="controlBar-autoHide" ${config.videoUI?.controlBar?.autoHide ?? true ? 'checked' : ''} />
+        自动隐藏控制栏
+      </label>
+      <label>
+        <select id="controlBar-position">
+          <option value="bottom" ${config.videoUI?.controlBar?.position === 'bottom' ? 'selected' : ''}>底部</option>
+          <option value="top" ${config.videoUI?.controlBar?.position === 'top' ? 'selected' : ''}>顶部</option>
+        </select>
+        控制栏位置
+      </label>
+      <label>
+        <select id="controlBar-size">
+          <option value="small" ${config.videoUI?.controlBar?.size === 'small' ? 'selected' : ''}>小</option>
+          <option value="medium" ${config.videoUI?.controlBar?.size === 'medium' ? 'selected' : ''}>中</option>
+          <option value="large" ${config.videoUI?.controlBar?.size === 'large' ? 'selected' : ''}>大</option>
+        </select>
+        控制栏大小
+      </label>
+      <label>
+        <input type="range" id="controlBar-opacity" min="0.1" max="1" step="0.1" value="${config.videoUI?.controlBar?.opacity ?? 0.9}" />
+        控制栏透明度: <span id="controlBar-opacity-value">${(config.videoUI?.controlBar?.opacity ?? 0.9) * 100}%</span>
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>播放设置</h3>
+      <label>
+        <select id="playback-defaultQuality">
+          <option value="auto" ${config.videoUI?.playback?.defaultQuality === 'auto' ? 'selected' : ''}>自动</option>
+          <option value="low" ${config.videoUI?.playback?.defaultQuality === 'low' ? 'selected' : ''}>低画质</option>
+          <option value="medium" ${config.videoUI?.playback?.defaultQuality === 'medium' ? 'selected' : ''}>中画质</option>
+          <option value="high" ${config.videoUI?.playback?.defaultQuality === 'high' ? 'selected' : ''}>高画质</option>
+          <option value="ultra" ${config.videoUI?.playback?.defaultQuality === 'ultra' ? 'selected' : ''}>超清</option>
+        </select>
+        默认画质
+      </label>
+      <label>
+        <input type="checkbox" id="playback-autoPlay" ${config.videoUI?.playback?.autoPlay ?? true ? 'checked' : ''} />
+        自动播放
+      </label>
+      <label>
+        <input type="checkbox" id="playback-loop" ${config.videoUI?.playback?.loop ?? false ? 'checked' : ''} />
+        循环播放
+      </label>
+    </div>
+  `;
+}
+
+export function createLiveSettings(config: Config): string {
+  return `
+    <div class="setting-group">
+      <h3>显示元素</h3>
+      <label>
+        <input type="checkbox" id="liveShowGifts" ${config.liveUI?.showGifts ?? true ? 'checked' : ''} />
+        显示礼物
+      </label>
+      <label>
+        <input type="checkbox" id="liveShowDanmaku" ${config.liveUI?.showDanmaku ?? true ? 'checked' : ''} />
+        显示弹幕
+      </label>
+      <label>
+        <input type="checkbox" id="liveShowRecommendations" ${config.liveUI?.showRecommendations ?? true ? 'checked' : ''} />
+        显示推荐
+      </label>
+      <label>
+        <input type="checkbox" id="liveShowAds" ${config.liveUI?.showAds ?? false ? 'checked' : ''} />
+        显示广告
+      </label>
+      <label>
+        <input type="checkbox" id="liveShowStats" ${config.liveUI?.showStats ?? true ? 'checked' : ''} />
+        显示统计信息
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>弹幕设置</h3>
+      <label>
+        <input type="range" id="danmaku-fontSize" min="12" max="36" step="1" value="${config.liveUI?.danmaku?.fontSize ?? 16}" />
+        弹幕字体大小: <span id="danmaku-fontSize-value">${config.liveUI?.danmaku?.fontSize ?? 16}px</span>
+      </label>
+      <label>
+        <input type="color" id="danmaku-color" value="${config.liveUI?.danmaku?.color ?? '#FFFFFF'}" />
+        弹幕颜色
+      </label>
+      <label>
+        <input type="range" id="danmaku-opacity" min="0.1" max="1" step="0.1" value="${config.liveUI?.danmaku?.opacity ?? 0.8}" />
+        弹幕透明度: <span id="danmaku-opacity-value">${(config.liveUI?.danmaku?.opacity ?? 0.8) * 100}%</span>
+      </label>
+      <label>
+        <select id="danmaku-speed">
+          <option value="fast" ${config.liveUI?.danmaku?.speed === 'fast' ? 'selected' : ''}>快</option>
+          <option value="medium" ${config.liveUI?.danmaku?.speed === 'medium' ? 'selected' : ''}>中</option>
+          <option value="slow" ${config.liveUI?.danmaku?.speed === 'slow' ? 'selected' : ''}>慢</option>
+        </select>
+        弹幕速度
+      </label>
+      <label>
+        <select id="danmaku-position">
+          <option value="top" ${config.liveUI?.danmaku?.position === 'top' ? 'selected' : ''}>顶部</option>
+          <option value="middle" ${config.liveUI?.danmaku?.position === 'middle' ? 'selected' : ''}>中部</option>
+          <option value="bottom" ${config.liveUI?.danmaku?.position === 'bottom' ? 'selected' : ''}>底部</option>
+        </select>
+        弹幕位置
+      </label>
+      <label>
+        <input type="number" id="danmaku-maxLines" min="1" max="10" value="${config.liveUI?.danmaku?.maxLines ?? 5}" />
+        最大弹幕行数
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>布局设置</h3>
+      <label>
+        <select id="live-layout">
+          <option value="default" ${config.liveUI?.layout === 'default' ? 'selected' : ''}>默认</option>
+          <option value="minimal" ${config.liveUI?.layout === 'minimal' ? 'selected' : ''}>极简</option>
+          <option value="immersive" ${config.liveUI?.layout === 'immersive' ? 'selected' : ''}>沉浸</option>
+        </select>
+        布局类型
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>音量设置</h3>
+      <label>
+        <input type="range" id="live-volume" min="0" max="100" step="5" value="${config.liveUI?.volume ?? 100}" />
+        音量: <span id="live-volume-value">${config.liveUI?.volume ?? 100}%</span>
+      </label>
+    </div>
+  `;
+}
+
+export function createImportExportSettings(): string {
+  return `
+    <div class="setting-group">
+      <h3>配置导入</h3>
+      <textarea id="importConfig" placeholder="粘贴配置JSON字符串" rows="5" cols="40"></textarea>
+      <button id="importBtn" class="action-btn">导入配置</button>
+    </div>
+    
+    <div class="setting-group">
+      <h3>配置导出</h3>
+      <button id="exportBtn" class="action-btn">导出当前配置</button>
+      <textarea id="exportConfig" placeholder="配置将在这里显示" rows="5" cols="40"></textarea>
+      <button id="copyBtn" class="action-btn">复制到剪贴板</button>
+    </div>
+  `;
+}
+
+export function createAdvancedSettings(config: Config): string {
+  return `
+    <div class="setting-group">
+      <h3>高级功能</h3>
+      <label>
+        <input type="checkbox" id="advanced-debugMode" ${config.advanced?.debugMode ?? false ? 'checked' : ''} />
+        启用调试模式
+      </label>
+      <label>
+        <input type="checkbox" id="advanced-performanceMode" ${config.advanced?.performanceMode ?? false ? 'checked' : ''} />
+        启用性能模式
+      </label>
+    </div>
+    
+    <div class="setting-group">
+      <h3>自定义CSS</h3>
+      <textarea id="advanced-customCSS" placeholder="输入自定义CSS代码" rows="5" cols="40">${config.advanced?.customCSS ?? ''}</textarea>
+      <small>注意：自定义CSS可能会影响页面性能</small>
+    </div>
+    
+    <div class="setting-group">
+      <h3>自定义脚本</h3>
+      <div id="custom-scripts-list">
+        ${(config.advanced?.customScripts ?? []).map((script, index) => `
+          <div class="script-item">
+            <input type="text" value="${script}" data-index="${index}" placeholder="脚本URL或代码" />
+            <button class="remove-script" data-index="${index}">删除</button>
+          </div>
+        `).join('')}
+      </div>
+      <button id="add-script">添加脚本</button>
+      <small>注意：自定义脚本可能会带来安全风险，请谨慎使用</small>
+    </div>
+  `;
+}
+
+export function createAutoExecutorSettings(): string {
+  return `
+    <div class="setting-group">
+      <h3>自动执行控制器</h3>
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="auto-executor-enable" />
+          <span class="slider"></span>
+        </label>
+        <span>启用自动执行控制器</span>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <h3>控制中心</h3>
+      <div class="button-group">
+        <div>
+          <button id="auto-executor-start" class="ui-button primary">开始执行</button>
+          <button id="auto-executor-stop" class="ui-button secondary">停止执行</button>
+        </div>
+        <button id="auto-executor-emergency" class="ui-button danger">紧急停止</button>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <h3>配置选项</h3>
+      <div class="setting-item">
+        <label for="check-interval">检查间隔（毫秒）:</label>
+        <input type="number" id="check-interval" value="1000" min="500" max="10000" />
+      </div>
+      <div class="setting-item">
+        <label for="max-attempts">最大重试次数:</label>
+        <input type="number" id="max-attempts" value="10" min="1" max="50" />
+      </div>
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="enable-logging" />
+          <span class="slider"></span>
+        </label>
+        <span>启用日志记录</span>
+      </div>
+      <div class="setting-item">
+        <label class="switch">
+          <input type="checkbox" id="require-confirmation" />
+          <span class="slider"></span>
+        </label>
+        <span>需要确认</span>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <h3>执行状态</h3>
+      <div class="status-info">
+        <div><strong>状态:</strong> <span id="executor-status">未运行</span></div>
+        <div><strong>当前尝试:</strong> <span id="current-attempt">0</span></div>
+        <div><strong>历史记录:</strong> <span id="execution-history">0</span></div>
+      </div>
+    </div>
+  `;
+}
+
+export function injectPanelStyles(): void {
+  injectStyle(`
+    .douyin-ui-customizer-panel {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `);
+}
+
+import logger from '../../utils/logger.ts';
+import eventEmitter from '../../utils/eventEmitter.ts';
+import type UIManager from '../../ui_manager.js';
+
+export function setupSettingsPanelEvents(panel: HTMLElement, uiManager: UIManager): void {
+  const closeBtn = panel.querySelector('.close-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      panel.remove();
+    });
+  }
+
+  const tabBtns = panel.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      if (!tabId) return;
+
+      tabBtns.forEach(b => b.classList.remove('active'));
+      panel.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      btn.classList.add('active');
+      const tabContent = panel.querySelector(`#${tabId}-tab`);
+      if (tabContent) {
+        tabContent.classList.add('active');
+      }
+    });
+  });
+
+  const saveBtn = panel.querySelector('.save-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      uiManager.saveSettings(panel);
+    });
+  }
+
+  const resetBtn = panel.querySelector('.reset-btn');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (confirm('确定要重置所有设置吗？')) {
+        if (typeof window.resetConfig === 'function') {
+          uiManager.config = window.resetConfig();
+        }
+        panel.remove();
+        location.reload();
+      }
+    });
+  }
+
+  initImportExport(panel, uiManager);
+  setupAutoExecutorEvents(panel, uiManager);
+}
+
+function initImportExport(panel: HTMLElement, uiManager: UIManager): void {
+  if (!panel) return;
+
+  const exportBtn = panel.querySelector('#exportBtn');
+  const exportConfig = panel.querySelector('#exportConfig') as HTMLTextAreaElement;
+  const copyBtn = panel.querySelector('#copyBtn');
+
+  if (exportBtn && exportConfig) {
+    exportBtn.addEventListener('click', () => {
+      try {
+        import('../../config.ts').then(({ default: configManager }) => {
+          const exportedConfig = configManager.exportConfig();
+          exportConfig.value = exportedConfig;
+        }).catch(error => {
+          logger.error('导入配置管理模块失败:', error);
+          exportConfig.value = JSON.stringify(uiManager.config, null, 2);
+        });
+      } catch (error) {
+        logger.error('导出配置失败:', error);
+        alert('导出配置失败');
+      }
+    });
+  }
+
+  if (copyBtn && exportConfig) {
+    copyBtn.addEventListener('click', () => {
+      exportConfig.select();
+      try {
+        document.execCommand('copy');
+        alert('配置已复制到剪贴板');
+      } catch (error) {
+        logger.error('复制失败:', error);
+        alert('复制失败');
+      }
+    });
+  }
+
+  const importBtn = panel.querySelector('#importBtn');
+  const importConfig = panel.querySelector('#importConfig') as HTMLTextAreaElement;
+
+  if (importBtn && importConfig) {
+    importBtn.addEventListener('click', () => {
+      try {
+        import('../../config.ts').then(({ default: configManager }) => {
+          const success = configManager.importConfig(importConfig.value);
+          if (success) {
+            uiManager.config = configManager.getConfig();
+            alert('配置导入成功');
+            location.reload();
+          } else {
+            alert('导入配置失败，请检查JSON格式');
+          }
+        }).catch(error => {
+          logger.error('导入配置管理模块失败:', error);
+          try {
+            const newConfig = JSON.parse(importConfig.value);
+            const configModule = require('../../config.ts');
+            const configManager = configModule.default || configModule;
+            if (configManager && typeof configManager.validateConfig === 'function') {
+              const validationResult = configManager.validateConfig(newConfig);
+              if (validationResult.valid) {
+                uiManager.config = newConfig;
+                uiManager.saveConfig();
+                alert('配置导入成功');
+                location.reload();
+              } else {
+                alert('配置格式验证失败: ' + validationResult.issues.join('\n'));
+              }
+            } else {
+              uiManager.config = newConfig;
+              uiManager.saveConfig();
+              alert('配置导入成功（跳过验证）');
+              location.reload();
+            }
+          } catch (parseError) {
+            logger.error('JSON解析失败:', parseError);
+            alert('JSON格式错误，请检查配置内容');
+          }
+        });
+      } catch (error) {
+        logger.error('导入配置失败:', error);
+        alert('导入配置失败，请检查JSON格式');
+      }
+    });
+  }
+}
+
+export function setupAutoExecutorEvents(panel: HTMLElement, uiManager: UIManager): void {
+  const autoExecutorTab = panel.querySelector('#auto-executor-tab');
+  if (!autoExecutorTab) return;
+
+  const enableSwitch = autoExecutorTab.querySelector('#auto-executor-enable') as HTMLInputElement;
+  if (enableSwitch) {
+    enableSwitch.addEventListener('change', (e) => {
+      uiManager.config.autoExecutorEnabled = (e.target as HTMLInputElement).checked;
+      uiManager.saveConfig();
+    });
+  }
+
+  const startBtn = autoExecutorTab.querySelector('#auto-executor-start');
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      const intervalInput = autoExecutorTab.querySelector('#check-interval') as HTMLInputElement;
+      const maxRetriesInput = autoExecutorTab.querySelector('#max-attempts') as HTMLInputElement;
+      const enableLoggingInput = autoExecutorTab.querySelector('#enable-logging') as HTMLInputElement;
+      const requireConfirmationInput = autoExecutorTab.querySelector('#require-confirmation') as HTMLInputElement;
+
+      const interval = parseInt(intervalInput.value) || 5000;
+      const maxRetries = parseInt(maxRetriesInput.value) || 3;
+      const enableLogging = enableLoggingInput.checked;
+      const requireConfirmation = requireConfirmationInput.checked;
+
+      uiManager.config.autoExecutorConfig = {
+        checkInterval: interval,
+        maxRetries: maxRetries,
+        enableLogging: enableLogging,
+        requireConfirmation: requireConfirmation
+      };
+      uiManager.saveConfig();
+
+      uiManager.autoExecutor.start(uiManager.config.autoExecutorConfig);
+      updateAutoExecutorStatus(panel, uiManager.autoExecutor);
+    });
+  }
+
+  const stopBtn = autoExecutorTab.querySelector('#auto-executor-stop');
+  if (stopBtn) {
+    stopBtn.addEventListener('click', () => {
+      uiManager.autoExecutor.stop();
+      updateAutoExecutorStatus(panel, uiManager.autoExecutor);
+    });
+  }
+
+  const emergencyStopBtn = autoExecutorTab.querySelector('#auto-executor-emergency');
+  if (emergencyStopBtn) {
+    emergencyStopBtn.addEventListener('click', () => {
+      uiManager.autoExecutor.emergencyStop();
+      updateAutoExecutorStatus(panel, uiManager.autoExecutor);
+    });
+  }
+
+  const configInputs = autoExecutorTab.querySelectorAll('.setting-item input');
+  configInputs.forEach(input => {
+    input.addEventListener('change', () => {
+      const intervalInput = autoExecutorTab.querySelector('#check-interval') as HTMLInputElement;
+      const maxRetriesInput = autoExecutorTab.querySelector('#max-attempts') as HTMLInputElement;
+      const enableLoggingInput = autoExecutorTab.querySelector('#enable-logging') as HTMLInputElement;
+      const requireConfirmationInput = autoExecutorTab.querySelector('#require-confirmation') as HTMLInputElement;
+
+      const interval = parseInt(intervalInput.value) || 5000;
+      const maxRetries = parseInt(maxRetriesInput.value) || 3;
+      const enableLogging = enableLoggingInput.checked;
+      const requireConfirmation = requireConfirmationInput.checked;
+
+      uiManager.config.autoExecutorConfig = {
+        checkInterval: interval,
+        maxRetries: maxRetries,
+        enableLogging: enableLogging,
+        requireConfirmation: requireConfirmation
+      };
+      uiManager.saveConfig();
+    });
+  });
+
+  uiManager.autoExecutorStatusInterval = setInterval(() => {
+    updateAutoExecutorStatus(panel, uiManager.autoExecutor);
+  }, 1000);
+}
+
+export function updateAutoExecutorStatus(panel: HTMLElement, autoExecutor: { isRunning: () => boolean; getCurrentAttempt: () => number; getExecutionHistory: () => Array<{ timestamp: number; action: string; success: boolean }> }): void {
+  const autoExecutorTab = panel.querySelector('#auto-executor-tab');
+  if (!autoExecutorTab) return;
+
+  const statusElement = autoExecutorTab.querySelector('#executor-status');
+  const currentAttemptElement = autoExecutorTab.querySelector('#current-attempt');
+  const historyElement = autoExecutorTab.querySelector('#execution-history');
+
+  if (statusElement) {
+    statusElement.textContent = autoExecutor.isRunning() ? '运行中' : '已停止';
+    statusElement.className = autoExecutor.isRunning() ? 'status-running' : 'status-stopped';
+  }
+
+  if (currentAttemptElement) {
+    currentAttemptElement.textContent = `当前尝试: ${autoExecutor.getCurrentAttempt()}`;
+  }
+
+  if (historyElement) {
+    const history = autoExecutor.getExecutionHistory();
+    historyElement.innerHTML = history.slice(-10).map((entry, index) => {
+      const statusClass = entry.success ? 'success' : 'failed';
+      return `<div class="history-entry ${statusClass}">${new Date(entry.timestamp).toLocaleTimeString()} - ${entry.action} (${entry.success ? '成功' : '失败'})</div>`;
+    }).join('');
+  }
+}
+
+export function applySettingsToPanel(uiManager: UIManager): void {
+  const panel = uiManager.settingsPanel;
+  if (!panel) return;
+
+  uiManager.applyTheme(uiManager.config.theme || 'light');
+  logger.info('Settings applied to panel');
+
+  panel.querySelectorAll('input[type="radio"][name="theme"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      uiManager.config.theme = (e.target as HTMLInputElement).value;
+      uiManager.applyTheme(uiManager.config.theme);
+      uiManager.saveConfig();
+    });
+  });
+
+  const generalSettings = ['autoPlay', 'autoScroll', 'keyboardShortcuts', 'notifications'];
+  generalSettings.forEach(setting => {
+    const checkbox = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        if (!uiManager.config.general) uiManager.config.general = {} as Record<string, boolean>;
+        uiManager.config.general[setting] = (e.target as HTMLInputElement).checked;
+        uiManager.saveConfig();
+      });
+    }
+  });
+
+  const videoSettings = ['showLikeButton', 'showCommentButton', 'showShareButton', 'showAuthorInfo', 'showMusicInfo', 'showDescription', 'showRecommendations'];
+  videoSettings.forEach(setting => {
+    const checkbox = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        if (!uiManager.config.videoUI) uiManager.config.videoUI = {} as Record<string, boolean>;
+        uiManager.config.videoUI[setting] = (e.target as HTMLInputElement).checked;
+        uiManager.saveConfig();
+        uiManager.applyVideoCustomizations();
+      });
+    }
+  });
+
+  const controlBarSettings = ['controlBar-show', 'controlBar-autoHide', 'controlBar-position', 'controlBar-size', 'controlBar-opacity'];
+  controlBarSettings.forEach(setting => {
+    const element = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (element) {
+      element.addEventListener('change', (e) => {
+        if (!uiManager.config.videoUI) uiManager.config.videoUI = {} as Record<string, unknown>;
+        if (!uiManager.config.videoUI.controlBar) uiManager.config.videoUI.controlBar = {} as Record<string, unknown>;
+
+        const controlBarSetting = setting.replace('controlBar-', '');
+        let value: string | boolean | number = (e.target as HTMLInputElement).value;
+
+        if ((e.target as HTMLInputElement).type === 'checkbox') {
+          value = (e.target as HTMLInputElement).checked;
+        } else if (controlBarSetting === 'opacity') {
+          value = parseFloat(value);
+          const valueElement = panel.querySelector('#controlBar-opacity-value');
+          if (valueElement) valueElement.textContent = `${value * 100}%`;
+        }
+
+        uiManager.config.videoUI.controlBar[controlBarSetting] = value;
+        uiManager.saveConfig();
+        uiManager.applyVideoCustomizations();
+      });
+    }
+  });
+
+  const playbackSettings = ['playback-defaultQuality', 'playback-autoPlay', 'playback-loop'];
+  playbackSettings.forEach(setting => {
+    const element = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (element) {
+      element.addEventListener('change', (e) => {
+        if (!uiManager.config.videoUI) uiManager.config.videoUI = {} as Record<string, unknown>;
+        if (!uiManager.config.videoUI.playback) uiManager.config.videoUI.playback = {} as Record<string, unknown>;
+
+        const playbackSetting = setting.replace('playback-', '');
+        let value: string | boolean = (e.target as HTMLInputElement).value;
+        if ((e.target as HTMLInputElement).type === 'checkbox') value = (e.target as HTMLInputElement).checked;
+
+        uiManager.config.videoUI.playback[playbackSetting] = value;
+        uiManager.saveConfig();
+        uiManager.applyVideoCustomizations();
+      });
+    }
+  });
+
+  const liveSettings = ['liveShowGifts', 'liveShowDanmaku', 'liveShowRecommendations', 'liveShowAds', 'liveShowStats'];
+  liveSettings.forEach(setting => {
+    const checkbox = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        if (!uiManager.config.liveUI) uiManager.config.liveUI = {} as Record<string, boolean>;
+        const liveSetting = setting.replace('liveShow', 'show');
+        uiManager.config.liveUI[liveSetting] = (e.target as HTMLInputElement).checked;
+        uiManager.saveConfig();
+        uiManager.applyLiveCustomizations();
+      });
+    }
+  });
+
+  const danmakuSettings = ['danmaku-fontSize', 'danmaku-color', 'danmaku-opacity', 'danmaku-speed', 'danmaku-position', 'danmaku-maxLines'];
+  danmakuSettings.forEach(setting => {
+    const element = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (element) {
+      element.addEventListener('change', (e) => {
+        if (!uiManager.config.liveUI) uiManager.config.liveUI = {} as Record<string, unknown>;
+        if (!uiManager.config.liveUI.danmaku) uiManager.config.liveUI.danmaku = {} as Record<string, unknown>;
+
+        const danmakuSetting = setting.replace('danmaku-', '');
+        let value: string | number = (e.target as HTMLInputElement).value;
+
+        if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') {
+          value = parseInt(value);
+          if (danmakuSetting === 'fontSize') {
+            const valueElement = panel.querySelector('#danmaku-fontSize-value');
+            if (valueElement) valueElement.textContent = `${value}px`;
+          }
+        } else if (danmakuSetting === 'opacity') {
+          value = parseFloat(value);
+          const valueElement = panel.querySelector('#danmaku-opacity-value');
+          if (valueElement) valueElement.textContent = `${value * 100}%`;
+        }
+
+        uiManager.config.liveUI.danmaku[danmakuSetting] = value;
+        uiManager.saveConfig();
+        uiManager.applyLiveCustomizations();
+      });
+    }
+  });
+
+  const liveLayoutSelect = panel.querySelector('#live-layout') as HTMLSelectElement;
+  if (liveLayoutSelect) {
+    liveLayoutSelect.addEventListener('change', (e) => {
+      if (!uiManager.config.liveUI) uiManager.config.liveUI = {} as Record<string, string>;
+      uiManager.config.liveUI.layout = (e.target as HTMLSelectElement).value;
+      uiManager.saveConfig();
+      uiManager.applyLiveCustomizations();
+    });
+  }
+
+  const liveVolumeSlider = panel.querySelector('#live-volume') as HTMLInputElement;
+  if (liveVolumeSlider) {
+    liveVolumeSlider.addEventListener('input', (e) => {
+      const value = parseInt((e.target as HTMLInputElement).value);
+      const valueElement = panel.querySelector('#live-volume-value');
+      if (valueElement) valueElement.textContent = `${value}%`;
+      if (!uiManager.config.liveUI) uiManager.config.liveUI = {} as Record<string, number>;
+      uiManager.config.liveUI.volume = value;
+      uiManager.saveConfig();
+      uiManager.applyLiveCustomizations();
+    });
+  }
+
+  const advancedSettings = ['advanced-debugMode', 'advanced-performanceMode'];
+  advancedSettings.forEach(setting => {
+    const checkbox = panel.querySelector(`#${setting}`) as HTMLInputElement;
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        if (!uiManager.config.advanced) uiManager.config.advanced = {} as Record<string, boolean>;
+        const advancedSetting = setting.replace('advanced-', '');
+        uiManager.config.advanced[advancedSetting] = (e.target as HTMLInputElement).checked;
+        uiManager.saveConfig();
+      });
+    }
+  });
+
+  const customCSS = panel.querySelector('#advanced-customCSS') as HTMLTextAreaElement;
+  if (customCSS) {
+    customCSS.addEventListener('input', (e) => {
+      if (!uiManager.config.advanced) uiManager.config.advanced = {} as Record<string, string>;
+      uiManager.config.advanced.customCSS = (e.target as HTMLTextAreaElement).value;
+      uiManager.saveConfig();
+    });
+  }
+
+  const addScriptBtn = panel.querySelector('#add-script');
+  if (addScriptBtn) {
+    addScriptBtn.addEventListener('click', () => {
+      const scriptsList = panel.querySelector('#custom-scripts-list');
+      if (scriptsList) {
+        const index = scriptsList.children.length;
+        const scriptItem = document.createElement('div');
+        scriptItem.className = 'script-item';
+        scriptItem.innerHTML = `
+          <input type="text" data-index="${index}" placeholder="脚本URL或代码" />
+          <button class="remove-script" data-index="${index}">删除</button>
+        `;
+        scriptsList.appendChild(scriptItem);
+
+        const removeBtn = scriptItem.querySelector('.remove-script');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            scriptItem.remove();
+            uiManager.saveConfig();
+          });
+        }
+
+        const input = scriptItem.querySelector('input');
+        if (input) {
+          input.addEventListener('input', () => uiManager.saveConfig());
+        }
+      }
+    });
+  }
+
+  const removeScriptBtns = panel.querySelectorAll('.remove-script');
+  removeScriptBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const scriptItem = btn.closest('.script-item');
+      if (scriptItem) {
+        scriptItem.remove();
+        uiManager.saveConfig();
+      }
+    });
+  });
+
+  const scriptInputs = panel.querySelectorAll('#custom-scripts-list .script-item input');
+  scriptInputs.forEach(input => {
+    input.addEventListener('input', () => uiManager.saveConfig());
+  });
+}
+
+import { findElementsByClassPattern, findElementsByStructure, toggleElements } from '../../utils/dom.ts';
+import logger from '../../utils/logger.ts';
+import type UIManager from '../../ui_manager.js';
+
+export function applyVideoCustomizations(uiManager: UIManager): void {
+  logger.info('[UI定制] 开始应用短视频界面定制');
+  const { videoUI } = uiManager.config;
+
+  if (!videoUI) {
+    logger.warn('[UI定制] 警告：videoUI配置缺失');
+    return;
+  }
+
+  logger.info('[UI定制] 视频UI配置:', JSON.stringify(videoUI));
+
+  if (!document.body) {
+    logger.warn('[UI定制] 警告：document.body未准备好，延迟应用定制');
+    setTimeout(() => uiManager.applyVideoCustomizations(), 500);
+    return;
+  }
+
+  uiManager.toggleElement(() => {
+    logger.info('[UI定制] 查找点赞按钮元素...');
+    const heartIcons = uiManager.findElementsByStructure({
+      tagName: 'svg',
+      attributes: { viewBox: '0 0 1024 1024' }
+    });
+    if (heartIcons.length > 0) {
+      logger.info(`[UI定制] 找到 ${heartIcons.length} 个可能的点赞图标`);
+      const elements = heartIcons.map(icon => icon.closest('div') || icon);
+      logger.info(`[UI定制] 获取到 ${elements.length} 个点赞相关元素`);
+      return elements;
+    }
+
+    logger.info('[UI定制] 尝试通过类名模式匹配点赞按钮');
+    const classElements = uiManager.findElementsByClassPattern(/like|heart|favorite/i);
+    logger.info(`[UI定制] 通过类名找到 ${classElements.length} 个可能的点赞元素`);
+    return classElements;
+  }, videoUI.showLikeButton);
+
+  uiManager.toggleElement(() => {
+    logger.info('[UI定制] 开始查找评论元素...');
+    const commentElements = uiManager.findElementsByStructure({
+      tagName: 'div',
+      children: [{ tagName: 'svg', attributes: { viewBox: '0 0 1024 1024' } }]
+    });
+    if (commentElements.length > 0) return commentElements;
+    return uiManager.findElementsByClassPattern(/comment|discuss/i);
+  }, videoUI.showCommentButton);
+
+  uiManager.toggleElement(() => {
+    const shareElements = uiManager.findElementsByStructure({
+      tagName: 'div',
+      children: [{ tagName: 'svg', attributes: { viewBox: '0 0 1024 1024' } }]
+    });
+    if (shareElements.length > 0) {
+      return shareElements.filter(el => {
+        const text = el.textContent.toLowerCase();
+        return text.includes('share') || text.includes('分享');
+      });
+    } else {
+      return uiManager.findElementsByClassPattern(/share|forward/i);
+    }
+  }, videoUI.showShareButton);
+
+  uiManager.toggleElement(() => {
+    const avatarElements = uiManager.findElementsByStructure({
+      tagName: 'img',
+      attributes: { class: /avatar|user/i }
+    });
+    if (avatarElements.length > 0) {
+      return avatarElements.map(img => img.closest('div') || img);
+    }
+    return uiManager.findElementsByClassPattern(/author|user|avatar/i);
+  }, videoUI.showAuthorInfo);
+
+  uiManager.toggleElement(() => {
+    const musicElements = uiManager.findElementsByStructure({ text: '音乐' });
+    if (musicElements.length > 0) {
+      return musicElements.map(el => el.closest('div') || el);
+    }
+    return uiManager.findElementsByClassPattern(/music|sound/i);
+  }, videoUI.showMusicInfo);
+
+  uiManager.toggleElement(() => {
+    const textElements = document.body.querySelectorAll('div');
+    const descriptions = Array.from(textElements).filter(el => {
+      return el.textContent.length > 20 && el.textContent.length < 200 &&
+             el.querySelector('img') && el.querySelector('video');
+    });
+    if (descriptions.length > 0) return descriptions;
+    return uiManager.findElementsByClassPattern(/desc|description|content/i);
+  }, videoUI.showDescription);
+
+  uiManager.toggleElement(() => {
+    const recommendationContainers = uiManager.findElementsByStructure({
+      tagName: 'div',
+      children: [{ tagName: 'video' }]
+    });
+    if (recommendationContainers.length > 0) return recommendationContainers;
+    return uiManager.findElementsByClassPattern(/recommend|suggest|related/i);
+  }, videoUI.showRecommendations);
+
+  if (videoUI.controlBar) {
+    uiManager.customizeControlBar(videoUI.controlBar);
+  }
+
+  uiManager.applyLayout('video', videoUI.layout);
+}
+
+import { findElementsByClassPattern, findElementsByStructure } from '../../utils/dom.ts';
+import logger from '../../utils/logger.ts';
+import type UIManager from '../../ui_manager.js';
+
+export function applyLiveCustomizations(uiManager: UIManager): void {
+  logger.info('应用直播间界面定制');
+  const { liveUI } = uiManager.config;
+
+  if (!liveUI) return;
+
+  uiManager.toggleElement(() => {
+    logger.info('[UI定制] 开始查找礼物元素...');
+    let giftElements: HTMLElement[] = [];
+
+    giftElements = giftElements.concat(
+      uiManager.findElementsByClassPattern(/gift|present|reward|award|effect|animation|特效|礼物|打赏|赠送|连击|连击奖励|豪华礼物|礼物特效|礼物动画|送礼物|礼物展示/i)
+    );
+
+    giftElements = giftElements.concat(
+      uiManager.findElementsByStructure({
+        attributes: { class: /gift|present|reward|award|effect|animation/i }
+      })
+    );
+
+    const animatedElements = document.body.querySelectorAll('div');
+    const potentialGiftAnims = Array.from(animatedElements).filter(el => {
+      const style = window.getComputedStyle(el);
+      return (style.animationName !== 'none' ||
+        style.transitionProperty.includes('transform') ||
+        style.transform !== 'none') &&
+        parseInt(style.zIndex) > 100 &&
+        style.position === 'absolute';
+    });
+
+    giftElements = giftElements.concat(potentialGiftAnims);
+
+    const textGiftElements = uiManager.findElementsByStructure({
+      text: /礼物|特效|打赏|赠送|连击|连击奖励|豪华礼物/i
+    });
+
+    if (textGiftElements.length > 0) {
+      textGiftElements.forEach(el => {
+        giftElements.push(el);
+        giftElements.push(el.closest('div') || el);
+        giftElements.push(el.closest('.gift-container') || el);
+        giftElements.push(el.closest('.animation-container') || el);
+      });
+    }
+
+    giftElements = [...new Set(giftElements)];
+    logger.info(`[UI定制] 找到 ${giftElements.length} 个礼物相关元素`);
+    return giftElements;
+  }, liveUI.showGifts);
+
+  uiManager.toggleElement(() => {
+    const bulletElements = document.body.querySelectorAll('div');
+    const potentialBullets = Array.from(bulletElements).filter(el => {
+      const style = window.getComputedStyle(el);
+      return style.position === 'absolute' &&
+             style.pointerEvents === 'none' &&
+             style.zIndex > 0;
+    });
+    if (potentialBullets.length > 0) return potentialBullets;
+    return uiManager.findElementsByClassPattern(/danmu|bullet|comment|danmaku/i);
+  }, liveUI.showDanmaku);
+
+  uiManager.toggleElement(() => {
+    const recommendationContainers = uiManager.findElementsByStructure({
+      tagName: 'div',
+      children: [{ tagName: 'img' }]
+    });
+    if (recommendationContainers.length > 0) return recommendationContainers;
+    return uiManager.findElementsByClassPattern(/recommend|suggest|related|live-recommend/i);
+  }, liveUI.showRecommendations);
+
+  uiManager.toggleElement(() => {
+    const adElements = uiManager.findElementsByStructure({ text: /广告|推广|ad|promotion/i });
+    if (adElements.length > 0) {
+      return adElements.map(el => el.closest('div') || el);
+    }
+    return uiManager.findElementsByClassPattern(/ad|advertisement|promotion|广告/i);
+  }, liveUI.showAds);
+
+  uiManager.toggleElement(() => {
+    const numberElements = document.body.querySelectorAll('div');
+    const potentialStats = Array.from(numberElements).filter(el => {
+      return /\d+/.test(el.textContent);
+    });
+    if (potentialStats.length > 0) return potentialStats;
+    return uiManager.findElementsByClassPattern(/stat|count|number|view/i);
+  }, liveUI.showStats);
+
+  if (liveUI.danmaku) {
+    uiManager.customizeDanmaku(liveUI.danmaku);
+  }
+
+  uiManager.applyLayout('live', liveUI.layout);
+}
 
 import {
   debounce,
@@ -3341,7 +4744,7 @@ import {
 } from './utils/dom.ts';
 import logger from './utils/logger.ts';
 import eventEmitter from './utils/eventEmitter.ts';
-import themeManager from './styles/theme.js';
+import themeManager from './styles/theme.ts';
 import autoExecutor from './utils/autoExecutor.ts';
 
 import {
@@ -3351,14 +4754,27 @@ import {
   applySettingsToPanel,
   setupAutoExecutorEvents,
   updateAutoExecutorStatus
-} from './ui/panels/settingsPanel.js';
+} from './ui/panels/settingsPanel.ts';
 
-import { makePanelDraggable, restrictPanelToViewport } from './ui/core/panelDrag.js';
-import { applyVideoCustomizations } from './ui/customizations/videoCustomizations.js';
-import { applyLiveCustomizations } from './ui/customizations/liveCustomizations.js';
+import { makePanelDraggable, restrictPanelToViewport } from './ui/core/panelDrag.ts';
+import { applyVideoCustomizations } from './ui/customizations/videoCustomizations.ts';
+import { applyLiveCustomizations } from './ui/customizations/liveCustomizations.ts';
+import type { Config } from './config.js';
 
 class UIManager {
-  constructor(config) {
+  config: Config;
+  settingsPanel: HTMLElement | null;
+  toggleButton: HTMLButtonElement | null;
+  isPanelVisible: boolean;
+  lastScrollPosition: number;
+  debouncedApplyCustomizations: () => void;
+  throttledHandleScroll: (e: Event) => void;
+  mutationObserver: MutationObserver | null;
+  domObserver: MutationObserver | null;
+  autoExecutorStatusInterval: ReturnType<typeof setInterval> | null;
+  autoExecutor: typeof autoExecutor;
+
+  constructor(config: Config) {
     this.config = config;
     this.settingsPanel = null;
     this.toggleButton = null;
@@ -3366,7 +4782,7 @@ class UIManager {
     this.lastScrollPosition = 0;
 
     this.debouncedApplyCustomizations = debounce(() => this.applyAllCustomizations(), 500);
-    this.throttledHandleScroll = throttle((e) => this.handleScroll(e), 100);
+    this.throttledHandleScroll = throttle((e: Event) => this.handleScroll(e), 100);
     this.mutationObserver = null;
     this.domObserver = null;
     this.autoExecutorStatusInterval = null;
@@ -3375,22 +4791,22 @@ class UIManager {
 
     logger.info('UIManager initialized with config');
 
-    themeManager.on('themeChanged', (newTheme) => {
+    themeManager.on('themeChanged', (newTheme: string) => {
       logger.info(`Theme changed to ${newTheme}`);
       this.applyTheme(newTheme);
     });
   }
 
-  applyVideoCustomizations() {
+  applyVideoCustomizations(): void {
     applyVideoCustomizations(this);
   }
 
-  applyLiveCustomizations() {
+  applyLiveCustomizations(): void {
     applyLiveCustomizations(this);
   }
 
-  toggleElement(selectorOrFinder, show) {
-    let elements = [];
+  toggleElement(selectorOrFinder: string | (() => HTMLElement[]), show: boolean): void {
+    let elements: HTMLElement[] = [];
     if (typeof selectorOrFinder === 'function') {
       try {
         elements = selectorOrFinder() || [];
@@ -3410,18 +4826,18 @@ class UIManager {
       return;
     }
 
-    return toggleElements(elements, show);
+    toggleElements(elements, show);
   }
 
-  findElementsByStructure(options) {
+  findElementsByStructure(options: unknown): HTMLElement[] {
     return findElementsByStructure(options);
   }
 
-  findElementsByClassPattern(pattern, tagName = '*') {
+  findElementsByClassPattern(pattern: string, tagName: string = '*'): HTMLElement[] {
     return findElementsByClassPattern(pattern, tagName);
   }
 
-  customizeControlBar(controlBarConfig) {
+  customizeControlBar(controlBarConfig: { show?: boolean; position?: string; autoHide?: boolean }): void {
     const controlBar = document.querySelector('.video-control-bar');
     if (!controlBar) return;
 
@@ -3445,11 +4861,9 @@ class UIManager {
           controlBar.style.bottom = '0';
       }
     }
-
-    if (controlBarConfig.autoHide) {}
   }
 
-  customizeDanmaku(danmakuConfig) {
+  customizeDanmaku(danmakuConfig: { fontSize?: number; color?: string; opacity?: number; speed?: string }): void {
     const styleId = 'douyin-danmaku-custom-styles';
     let styleElement = document.getElementById(styleId);
     if (!styleElement) {
@@ -3482,7 +4896,7 @@ class UIManager {
     styleElement.textContent = css;
   }
 
-  hideSettingsPanel() {
+  hideSettingsPanel(): void {
     if (!this.settingsPanel) return;
     this.isPanelVisible = false;
     this.settingsPanel.style.transition = 'opacity 0.3s ease-out';
@@ -3494,12 +4908,12 @@ class UIManager {
     }, 300);
   }
 
-  applyLayout(type, layout) {
+  applyLayout(type: string, layout: string): void {
     if (!layout || layout === 'default') return;
     logger.info(`应用${type}布局：${layout}`);
   }
 
-  showSettingsPanel() {
+  showSettingsPanel(): void {
     if (this.settingsPanel) {
       this.settingsPanel.remove();
     }
@@ -3509,7 +4923,7 @@ class UIManager {
     this.makePanelDraggable(this.settingsPanel);
   }
 
-  createSettingsPanel() {
+  createSettingsPanel(): HTMLElement {
     const panel = createElement('div', {
       className: 'douyin-ui-customizer-panel',
       style: { animation: 'slideIn 0.3s ease-out' }
@@ -3522,12 +4936,12 @@ class UIManager {
     return panel;
   }
 
-  makePanelDraggable(panel) {
+  makePanelDraggable(panel: HTMLElement): void {
     makePanelDraggable(panel);
     restrictPanelToViewport(panel);
   }
 
-  applyAllCustomizations() {
+  applyAllCustomizations(): void {
     logger.info('[UI定制] 开始统一应用所有UI定制');
     try {
       const pageType = this.detectPageType();
@@ -3553,13 +4967,13 @@ class UIManager {
     }
   }
 
-  detectPageType() {
+  detectPageType(): string {
     if (document.querySelector('video[autoplay]')) return 'video';
     if (document.querySelector('.live, .live-room, [data-type="live"]')) return 'live';
     return 'other';
   }
 
-  handleScroll(e) {
+  handleScroll(e: Event): void {
     const currentScroll = window.scrollY;
     const direction = currentScroll > this.lastScrollPosition ? 'down' : 'up';
     this.lastScrollPosition = currentScroll;
@@ -3571,7 +4985,7 @@ class UIManager {
     }
   }
 
-  applyTheme(theme) {
+  applyTheme(theme: string): void {
     try {
       themeManager.applyTheme(theme);
       if (this.settingsPanel) {
@@ -3596,7 +5010,7 @@ class UIManager {
     }
   }
 
-  saveToLocalStorage(config) {
+  saveToLocalStorage(config: Config): void {
     try {
       localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(config));
       logger.info('配置已保存到localStorage');
@@ -3605,9 +5019,9 @@ class UIManager {
     }
   }
 
-  saveConfig() {
+  saveConfig(): void {
     try {
-      import('./config.js').then(({ default: configManager }) => {
+      import('./config.ts').then(({ default: configManager }) => {
         configManager.setConfig(this.config);
         logger.info('配置已保存');
       }).catch(error => {
@@ -3620,7 +5034,7 @@ class UIManager {
     }
   }
 
-  async saveSettings(panel) {
+  async saveSettings(panel: HTMLElement): Promise<void> {
     try {
       const themeRadios = panel.querySelectorAll('input[type="radio"][name="theme"]');
       for (const radio of themeRadios) {
@@ -3634,8 +5048,8 @@ class UIManager {
       generalSettings.forEach(setting => {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
-          if (!this.config.general) this.config.general = {};
-          this.config.general[setting] = checkbox.checked;
+          if (!this.config.general) this.config.general = {} as Config['general'];
+          (this.config.general as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -3643,8 +5057,8 @@ class UIManager {
       videoSettings.forEach(setting => {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
-          if (!this.config.videoUI) this.config.videoUI = {};
-          this.config.videoUI[setting] = checkbox.checked;
+          if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
+          (this.config.videoUI as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -3652,13 +5066,13 @@ class UIManager {
       controlBarSettings.forEach(setting => {
         const element = panel.querySelector(`#${setting}`);
         if (element) {
-          if (!this.config.videoUI) this.config.videoUI = {};
-          if (!this.config.videoUI.controlBar) this.config.videoUI.controlBar = {};
+          if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
+          if (!this.config.videoUI.controlBar) this.config.videoUI.controlBar = {} as Config['videoUI']['controlBar'];
           const controlBarSetting = setting.replace('controlBar-', '');
-          let value = element.value;
-          if (element.type === 'checkbox') value = element.checked;
-          else if (controlBarSetting === 'opacity') value = parseFloat(value);
-          this.config.videoUI.controlBar[controlBarSetting] = value;
+          let value: string | boolean | number = (element as HTMLInputElement).value;
+          if ((element as HTMLInputElement).type === 'checkbox') value = (element as HTMLInputElement).checked;
+          else if (controlBarSetting === 'opacity') value = parseFloat(value as string);
+          (this.config.videoUI.controlBar as Record<string, unknown>)[controlBarSetting] = value;
         }
       });
 
@@ -3666,12 +5080,12 @@ class UIManager {
       playbackSettings.forEach(setting => {
         const element = panel.querySelector(`#${setting}`);
         if (element) {
-          if (!this.config.videoUI) this.config.videoUI = {};
-          if (!this.config.videoUI.playback) this.config.videoUI.playback = {};
+          if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
+          if (!this.config.videoUI.playback) this.config.videoUI.playback = {} as Config['videoUI']['playback'];
           const playbackSetting = setting.replace('playback-', '');
-          let value = element.value;
-          if (element.type === 'checkbox') value = element.checked;
-          this.config.videoUI.playback[playbackSetting] = value;
+          let value: string | boolean = (element as HTMLInputElement).value;
+          if ((element as HTMLInputElement).type === 'checkbox') value = (element as HTMLInputElement).checked;
+          (this.config.videoUI.playback as Record<string, unknown>)[playbackSetting] = value;
         }
       });
 
@@ -3679,9 +5093,9 @@ class UIManager {
       liveSettings.forEach(setting => {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
-          if (!this.config.liveUI) this.config.liveUI = {};
+          if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
           const liveSetting = setting.replace('liveShow', 'show');
-          this.config.liveUI[liveSetting] = checkbox.checked;
+          (this.config.liveUI as Record<string, boolean>)[liveSetting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -3689,43 +5103,43 @@ class UIManager {
       danmakuSettings.forEach(setting => {
         const element = panel.querySelector(`#${setting}`);
         if (element) {
-          if (!this.config.liveUI) this.config.liveUI = {};
-          if (!this.config.liveUI.danmaku) this.config.liveUI.danmaku = {};
+          if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
+          if (!this.config.liveUI.danmaku) this.config.liveUI.danmaku = {} as Config['liveUI']['danmaku'];
           const danmakuSetting = setting.replace('danmaku-', '');
-          let value = element.value;
-          if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') value = parseInt(value);
-          else if (danmakuSetting === 'opacity') value = parseFloat(value);
-          this.config.liveUI.danmaku[danmakuSetting] = value;
+          let value: string | number = (element as HTMLInputElement).value;
+          if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') value = parseInt(value as string);
+          else if (danmakuSetting === 'opacity') value = parseFloat(value as string);
+          (this.config.liveUI.danmaku as Record<string, unknown>)[danmakuSetting] = value;
         }
       });
 
       const liveLayoutSelect = panel.querySelector('#live-layout');
       if (liveLayoutSelect) {
-        if (!this.config.liveUI) this.config.liveUI = {};
-        this.config.liveUI.layout = liveLayoutSelect.value;
+        if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
+        this.config.liveUI.layout = (liveLayoutSelect as HTMLSelectElement).value;
       }
 
       const liveVolumeSlider = panel.querySelector('#live-volume');
       if (liveVolumeSlider) {
-        if (!this.config.liveUI) this.config.liveUI = {};
-        this.config.liveUI.volume = parseInt(liveVolumeSlider.value);
+        if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
+        this.config.liveUI.volume = parseInt((liveVolumeSlider as HTMLInputElement).value);
       }
 
       const debugModeCheckbox = panel.querySelector('#advanced-debugMode');
       const performanceModeCheckbox = panel.querySelector('#advanced-performanceMode');
       const customCSS = panel.querySelector('#advanced-customCSS');
 
-      if (!this.config.advanced) this.config.advanced = {};
-      if (debugModeCheckbox) this.config.advanced.debugMode = debugModeCheckbox.checked;
-      if (performanceModeCheckbox) this.config.advanced.performanceMode = performanceModeCheckbox.checked;
-      if (customCSS) this.config.advanced.customCSS = customCSS.value;
+      if (!this.config.advanced) this.config.advanced = {} as Config['advanced'];
+      if (debugModeCheckbox) this.config.advanced.debugMode = (debugModeCheckbox as HTMLInputElement).checked;
+      if (performanceModeCheckbox) this.config.advanced.performanceMode = (performanceModeCheckbox as HTMLInputElement).checked;
+      if (customCSS) this.config.advanced.customCSS = (customCSS as HTMLTextAreaElement).value;
 
       const scriptItems = panel.querySelectorAll('#custom-scripts-list .script-item input');
-      const customScripts = [];
+      const customScripts: string[] = [];
       let hasScripts = false;
 
       scriptItems.forEach(input => {
-        const value = input.value.trim();
+        const value = (input as HTMLInputElement).value.trim();
         if (value) {
           customScripts.push(value);
           hasScripts = true;
@@ -3734,12 +5148,12 @@ class UIManager {
 
       if (hasScripts) {
         const confirmed = confirm('警告：自定义脚本可能会带来安全风险，是否继续保存？');
-        if (!confirmed) return false;
+        if (!confirmed) return;
 
         for (const script of customScripts) {
           if (script.includes('eval(') || script.includes('Function(') || script.includes('innerHTML') || script.includes('document.write') || script.includes('execScript')) {
             const scriptConfirmed = confirm('警告：检测到可能的危险代码，是否确认添加此脚本？');
-            if (!scriptConfirmed) return false;
+            if (!scriptConfirmed) return;
           }
 
           if (script.startsWith('http://') || script.startsWith('https://')) {
@@ -3749,7 +5163,7 @@ class UIManager {
 
             if (!allowedDomains.some(allowedDomain => domain.includes(allowedDomain))) {
               const urlConfirmed = confirm(`警告：脚本URL来自非白名单域名 (${domain})，是否确认添加此脚本？`);
-              if (!urlConfirmed) return false;
+              if (!urlConfirmed) return;
             }
           }
         }
@@ -3757,9 +5171,9 @@ class UIManager {
 
       this.config.advanced.customScripts = customScripts;
 
-      let validationResult = { valid: true, issues: [] };
+      let validationResult = { valid: true, issues: [] as string[] };
       try {
-        const configModule = await import('./config.js');
+        const configModule = await import('./config.ts');
         const configManager = configModule.default;
         validationResult = configManager.validateConfig(this.config);
       } catch (error) {
@@ -3783,8 +5197,8 @@ class UIManager {
     }
   }
 
-  basicValidateConfig(config) {
-    const issues = [];
+  basicValidateConfig(config: Config): { valid: boolean; issues: string[] } {
+    const issues: string[] = [];
 
     try {
       if (config.theme && !['light', 'dark'].includes(config.theme)) {
@@ -3813,10 +5227,10 @@ class UIManager {
       issues.push('配置验证过程中发生错误');
     }
 
-    return { valid: issues.length === 0, issues: issues };
+    return { valid: issues.length === 0, issues };
   }
 
-  init() {
+  init(): void {
     logger.info('[UI管理器] 初始化UI管理器');
     try {
       this.initSettingsPanel();
@@ -3827,13 +5241,13 @@ class UIManager {
     }
   }
 
-  initUI() {
+  initUI(): void {
     logger.info('[UI管理器] 初始化UI定制');
     this.showToggleButton();
     this.applyAllCustomizations();
   }
 
-  setupEvents() {
+  setupEvents(): void {
     logger.info('[UI管理器] 设置事件监听');
     addEvent(window, 'load', this.debouncedApplyCustomizations);
     addEvent(document, 'DOMContentLoaded', this.debouncedApplyCustomizations);
@@ -3846,7 +5260,7 @@ class UIManager {
     }
   }
 
-  observeDomChanges() {
+  observeDomChanges(): void {
     const observer = new MutationObserver(this.debouncedApplyCustomizations);
     observer.observe(document.body, {
       childList: true,
@@ -3857,7 +5271,7 @@ class UIManager {
     this.domObserver = observer;
   }
 
-  cleanup() {
+  cleanup(): void {
     logger.info('[UI管理器] 清理资源和事件监听');
     if (this.domObserver) {
       this.domObserver.disconnect();
@@ -3877,7 +5291,7 @@ class UIManager {
     }
   }
 
-  initSettingsPanel() {
+  initSettingsPanel(): void {
     this.settingsPanel = document.createElement('div');
     this.settingsPanel.id = 'douyin-customizer-panel';
     this.settingsPanel.className = 'customizer-panel';
@@ -3918,7 +5332,7 @@ class UIManager {
     closeButton.style.lineHeight = '1';
     closeButton.textContent = '×';
     closeButton.addEventListener('click', () => {
-      this.settingsPanel.style.display = 'none';
+      this.settingsPanel!.style.display = 'none';
       this.showToggleButton();
     });
 
@@ -3971,7 +5385,7 @@ class UIManager {
         tabNavigation.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
         tabContent.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
         button.classList.add('active');
-        tabContent.querySelector(`#${tabId}-tab`).classList.add('active');
+        tabContent.querySelector(`#${tabId}-tab`)?.classList.add('active');
       });
     });
 
@@ -3980,12 +5394,12 @@ class UIManager {
     logger.info('Settings panel initialized');
   }
 
-  restrictPanelToViewport(panel) {
+  restrictPanelToViewport(panel: HTMLElement): void {
     restrictPanelToViewport(panel);
   }
 
-  showToggleButton() {
-    let toggleButton = document.getElementById('douyin-customizer-toggle');
+  showToggleButton(): void {
+    let toggleButton = document.getElementById('douyin-customizer-toggle') as HTMLButtonElement;
     if (!toggleButton) {
       toggleButton = document.createElement('button');
       toggleButton.id = 'douyin-customizer-toggle';
@@ -4013,37 +5427,13 @@ class UIManager {
 
     toggleButton.style.display = 'flex';
     toggleButton.addEventListener('click', () => {
-      this.settingsPanel.style.display = 'block';
+      this.settingsPanel!.style.display = 'block';
       toggleButton.style.display = 'none';
     });
   }
 }
 
 export default UIManager;
-
-
-// ==UserScript==
-// @name         抖音网页版UI定制工具
-// @namespace    http://tampermonkey.net/
-// @version 2.0.1
-// @description  抖音Web端界面UI定制工具，可自定义短视频和直播间界面
-// @author       SutChan
-// @match        *://*.douyin.com/*
-// @grant        GM_registerMenuCommand
-// @grant        GM_xmlhttpRequest
-// @grant        GM_getValue
-// @grant        GM_setValue
-// @grant        GM_addStyle
-// @license      MIT
-// ==/UserScript==
-
-/**
- * src/main.js
- * 抖音Web端界面UI定制工具主入口
- * 作者：SutChan
- * 版本：2.0.1
- * 更新日期：2026-04-27
- */
 
 import { debounce, getElement, addEvent, createElement, injectStyle } from './utils/dom.ts';
 import { getItem, setItem, NamespacedStorage } from './utils/storage.ts';
@@ -4052,17 +5442,17 @@ import eventEmitter from './utils/eventEmitter.ts';
 import performanceMonitor from './utils/performance.ts';
 import configManager from './config.js';
 import UIManager from './ui_manager.js';
-import themeManager from './styles/theme.js';
-import { injectStyles, injectBasicStyles } from './utils/styleGenerator.js';
-import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.js';
+import themeManager from './styles/theme.ts';
+import { injectStyles, injectBasicStyles } from './utils/styleGenerator.ts';
+import { observePageChanges, stopObserving, isVideoPage, isLivePage } from './utils/pageObserver.ts';
 
 const CURRENT_VERSION = '2.0.1';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');
-let uiManager = null;
+let uiManager: UIManager | null = null;
 
-async function checkForUpdates(showNoUpdateMessage = false) {
+function checkForUpdates(showNoUpdateMessage = false): void {
   try {
     const updateUrl = 'https://github.com/SutChan/douyin_tool/raw/main/dist/douyin_ui_customizer.user.js';
 
@@ -4098,7 +5488,7 @@ async function checkForUpdates(showNoUpdateMessage = false) {
   }
 }
 
-function isNewerVersion(newVersion, currentVersion) {
+function isNewerVersion(newVersion: string, currentVersion: string): boolean {
   const newParts = newVersion.split('.').map(Number);
   const currentParts = currentVersion.split('.').map(Number);
 
@@ -4110,7 +5500,7 @@ function isNewerVersion(newVersion, currentVersion) {
   return false;
 }
 
-function shouldCheckForUpdates() {
+function shouldCheckForUpdates(): boolean {
   const lastCheckTime = getItem('lastUpdateCheckTime', 0);
   const now = Date.now();
 
@@ -4122,7 +5512,7 @@ function shouldCheckForUpdates() {
   return false;
 }
 
-function init() {
+function init(): void {
   logger.info('抖音UI定制工具已启动');
 
   performanceMonitor.start();
@@ -4149,7 +5539,7 @@ function init() {
   eventEmitter.emit('tool.init.completed', { config });
 }
 
-function createFloatingSettingsButton(uiManager) {
+function createFloatingSettingsButton(uiManager: UIManager): void {
   if (document.getElementById('douyin-ui-customizer-float-btn')) {
     return;
   }
@@ -4197,9 +5587,9 @@ function createFloatingSettingsButton(uiManager) {
   }, 5000);
 }
 
-let globalUIManager = null;
+let globalUIManager: UIManager | null = null;
 
-function initUIManager() {
+function initUIManager(): UIManager {
   if (!globalUIManager) {
     const config = configManager.getConfig();
     globalUIManager = new UIManager(config);
@@ -4235,7 +5625,7 @@ GM_registerMenuCommand('重置所有设置', () => {
   }
 });
 
-function setupErrorHandling() {
+function setupErrorHandling(): void {
   window.onerror = function(message, source, lineno, colno, error) {
     logger.error('[抖音UI定制工具] 全局错误:', { message, source, lineno, colno, error });
     eventEmitter.emit('tool.error', { type: 'global', error, message });
@@ -4257,7 +5647,7 @@ function setupErrorHandling() {
   });
 }
 
-function cleanup() {
+function cleanup(): void {
   logger.info('抖音UI定制工具执行清理');
 
   try {
@@ -4279,7 +5669,7 @@ function cleanup() {
   }
 }
 
-function ensureInit() {
+function ensureInit(): void {
   try {
     init();
   } catch (error) {
@@ -4312,7 +5702,7 @@ window.addEventListener('unload', cleanup);
 const douyinUICustomizer = {
   version: CURRENT_VERSION,
   getConfig: () => configManager.getConfig(),
-  setConfig: (key, value) => configManager.setConfig(key, value),
+  setConfig: (key: string, value: unknown) => configManager.setConfig(key, value),
   showDebugInfo: () => {
     logger.debug('[抖音UI定制工具] 调试信息:', {
       version: CURRENT_VERSION,
@@ -4335,15 +5725,15 @@ const douyinUICustomizer = {
       }
     }
   },
-  cleanup: cleanup,
+  cleanup,
   theme: {
-    apply: (themeName) => themeManager.applyTheme(themeName),
+    apply: (themeName: string) => themeManager.applyTheme(themeName),
     getCurrent: () => themeManager.getCurrentTheme(),
     list: () => themeManager.listThemes()
   },
-  on: (event, callback) => eventEmitter.on(event, callback),
-  off: (event, callback) => eventEmitter.off(event, callback),
-  emit: (event, data) => eventEmitter.emit(event, data),
+  on: (event: string, callback: (...args: unknown[]) => void) => eventEmitter.on(event, callback),
+  off: (event: string, callback: (...args: unknown[]) => void) => eventEmitter.off(event, callback),
+  emit: (event: string, data: unknown) => eventEmitter.emit(event, data),
   performance: {
     start: () => performanceMonitor.start(),
     stop: () => performanceMonitor.stop(),
@@ -4352,9 +5742,9 @@ const douyinUICustomizer = {
   },
   config: {
     export: () => configManager.exportConfig(),
-    import: (jsonString) => configManager.importConfig(jsonString),
+    import: (jsonString: string) => configManager.importConfig(jsonString),
     reset: () => configManager.resetConfig(),
-    validate: (config) => configManager.validateConfig(config)
+    validate: (config: unknown) => configManager.validateConfig(config as Parameters<typeof configManager.validateConfig>[0])
   }
 };
 
@@ -4369,5 +5759,4 @@ eventEmitter.on('tool.error', (data) => {
 eventEmitter.on('tool.styles.updated', (data) => {
   logger.info('样式已更新:', data);
 });
-
 
