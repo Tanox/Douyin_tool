@@ -107,7 +107,8 @@ export interface StorageInfo {
 }
 
 export interface DOMCacheEntry {
-  element: Element | null;
+  element?: Element | null;
+  elements?: HTMLElement[];
   timestamp: number;
 }
 

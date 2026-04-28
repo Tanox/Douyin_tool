@@ -79,7 +79,7 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return (entry as unknown as { elements: HTMLElement[] }).elements;
+      return entry.elements || [];
     }
 
     const elements = Array.from(parent.querySelectorAll<HTMLElement>(selector));
@@ -87,7 +87,7 @@ export function getElements(selector: string, parent: HTMLElement | Document = d
     domCache.set(cacheKey, {
       elements,
       timestamp: Date.now()
-    } as unknown as DOMCacheEntry);
+    });
 
     return elements;
   } catch (error) {
@@ -102,7 +102,7 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return (entry as unknown as { elements: HTMLElement[] }).elements;
+      return entry.elements || [];
     }
 
     const elements: HTMLElement[] = [];
@@ -116,7 +116,7 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
           domCache.set(cacheKey, {
             elements: cssElements,
             timestamp: Date.now()
-          } as unknown as DOMCacheEntry);
+          });
           return cssElements;
         }
       } catch {
@@ -133,7 +133,7 @@ export function findElementsByClassPattern(pattern: RegExp, parent: HTMLElement 
     domCache.set(cacheKey, {
       elements,
       timestamp: Date.now()
-    } as unknown as DOMCacheEntry);
+    });
 
     return elements;
   } catch (error) {
@@ -148,7 +148,7 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
 
     if (domCache.has(cacheKey)) {
       const entry = domCache.get(cacheKey)!;
-      return (entry as unknown as { elements: HTMLElement[] }).elements;
+      return entry.elements || [];
     }
 
     const result: HTMLElement[] = [];
@@ -198,7 +198,7 @@ export function findElementsByStructure(options: ElementStructure, parent: HTMLE
     domCache.set(cacheKey, {
       elements: result,
       timestamp: Date.now()
-    } as unknown as DOMCacheEntry);
+    });
 
     return result;
   } catch (error) {
