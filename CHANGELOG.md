@@ -1,5 +1,19 @@
 # 抖音UI定制器版本历史
 
+## 1.2.0
+
+- 新增控制器模块（elementController, layoutController）
+- 新增UI组件系统（面板拖拽、设置面板、视频/直播间定制）
+- 新增工具函数（autoExecutor, dom, eventEmitter, logger, performance, storage）
+- 新增主题系统（浅色/深色/极简主题支持）
+- 新增布局管理模块
+- 新增类型定义文件（TypeScript迁移中）
+- 新增测试目录和测试用例
+- 新增TypeScript迁移计划文档
+- 优化性能监控和日志系统
+- 完善弹幕样式自定义功能（字体、颜色、透明度、速度、位置）
+- 增加音量控制功能
+
 ## 1.1.0
 
 - 统一项目文档编码为UTF-8无BOM，换行符为Unix LF
