@@ -1,5 +1,5 @@
-import logger from './logger.js';
-import type { StorageInfo } from '../types/index.js';
+import logger from './logger';
+import type { StorageInfo } from '../types';
 
 export function getItem<T = unknown>(key: string, defaultValue: T | null = null): T | null {
   try {
@@ -83,19 +83,21 @@ export function getNestedItem<T = unknown>(key: string, path: string, defaultVal
 
 export function setNestedItem<T = unknown>(key: string, path: string, value: T, expiresIn?: number): boolean {
   try {
-    const data = getItem<Record<string, unknown>>(key, {});
+    const data = getItem<Record<string, unknown>>(key, {}) || {};
     const keys = path.split('.');
-    let current = data;
+    let current = data as Record<string, unknown>;
 
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (!current[k] || typeof current[k] !== 'object') {
+      if (!current[k] || typeof current[k] !== 'object' || current[k] === null) {
         current[k] = {};
       }
       current = current[k] as Record<string, unknown>;
     }
 
-    current[keys[keys.length - 1]] = value;
+    if (current && typeof current === 'object' && current !== null) {
+      current[keys[keys.length - 1]] = value;
+    }
 
     return setItem(key, data, expiresIn);
   } catch (error) {
@@ -163,11 +165,11 @@ export function getStorageInfo(): StorageInfo {
 
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      const value = localStorage.getItem(key || '');
-      const size = new Blob([key + value]).size;
-
-      totalSize += size;
       if (key) {
+        const value = localStorage.getItem(key);
+        const size = new Blob([key + (value || '')]).size;
+
+        totalSize += size;
         items[key] = size;
       }
     }

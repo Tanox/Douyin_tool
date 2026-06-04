@@ -1,7 +1,7 @@
-import { debounce, throttle, getElement, getElements, findElementsByClassPattern, findElementsByStructure } from './dom.js';
-import logger from './logger.js';
-import eventEmitter from './eventEmitter.js';
-import buttonDetector from './buttonDetector.js';
+import { debounce, throttle, getElement, getElements, findElementsByClassPattern, findElementsByStructure } from './dom';
+import logger from './logger';
+import eventEmitter from './eventEmitter';
+import buttonDetector from './buttonDetector';
 
 interface RetryConfig {
   maxAttempts: number;
@@ -53,7 +53,7 @@ class AutoExecutor {
       },
       checkInterval: 1000,
       enabled: false,
-      customDetector: null,
+      customDetector: (() => null) as () => HTMLElement | null,
       confirmationRequired: false,
       enableLogging: true,
       captureScreenshots: false,
@@ -215,7 +215,7 @@ class AutoExecutor {
 
   private isButtonClickable(button: HTMLElement): boolean {
     if (!button) return false;
-    if (button.disabled || button.hasAttribute('disabled')) return false;
+    if (('disabled' in button && (button as any).disabled) || button.hasAttribute('disabled')) return false;
     if (button.style.display === 'none' || button.style.visibility === 'hidden') return false;
 
     const rect = button.getBoundingClientRect();

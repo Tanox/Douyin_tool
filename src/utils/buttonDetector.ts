@@ -1,5 +1,5 @@
-import { getElement, getElements, findElementsByStructure } from './dom.ts';
-import logger from './logger.ts';
+import { getElement, getElements, findElementsByStructure } from './dom';
+import logger from './logger';
 
 interface ButtonDetectorOptions {
   buttonTexts?: string[];
@@ -79,7 +79,7 @@ export class ButtonDetector {
     const allElements = document.getElementsByTagName('*');
 
     for (const element of allElements) {
-      const text = element.textContent || element.innerText || '';
+      const text = element.textContent || '';
       const trimmedText = text.trim();
 
       if (this.options.buttonTexts?.includes(trimmedText)) {
@@ -136,14 +136,13 @@ export class ButtonDetector {
       { tagName: 'input', attributes: { type: 'button' } },
       { tagName: 'input', attributes: { type: 'submit' } },
       { tagName: 'div', attributes: { role: 'button' } },
-      { tagName: 'span', attributes: { role: 'button' } },
-      { tagName: 'a', attributes: { href: /./ } }
+      { tagName: 'span', attributes: { role: 'button' } }
     ];
 
     for (const structure of buttonStructures) {
-      const elements = findElementsByStructure(structure);
+      const elements = findElementsByStructure(structure as any);
       for (const element of elements) {
-        const text = element.textContent || element.innerText || '';
+        const text = element.textContent || '';
         const trimmedText = text.trim();
         if (this.options.buttonTexts?.includes(trimmedText)) {
           return element;

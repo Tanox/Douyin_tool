@@ -1,5 +1,5 @@
-import logger from '../utils/logger.ts';
-import { injectStyle } from '../utils/dom.ts';
+import logger from '../utils/logger';
+import { injectStyle } from '../utils/dom';
 
 interface ThemeVariables {
   [key: string]: string;

@@ -71,13 +71,14 @@ interface AdvancedConfig {
   customScripts: string[];
 }
 
-interface Config {
+export interface Config {
   version: string;
   theme: string;
   videoUI: VideoUIConfig;
   liveUI: LiveUIConfig;
   general: GeneralConfig;
   advanced: AdvancedConfig;
+  [key: string]: unknown;
 }
 
 const DEFAULT_CONFIG: Config = {
@@ -279,15 +280,18 @@ function mergeConfig(userConfig: Partial<Config>, defaultConfig: Config): Config
 
   for (const key in userConfig) {
     if (Object.prototype.hasOwnProperty.call(userConfig, key)) {
-      if (typeof userConfig[key] === 'object' && userConfig[key] !== null &&
-        typeof defaultConfig[key as keyof Config] === 'object' && defaultConfig[key as keyof Config] !== null &&
-        !Array.isArray(userConfig[key]) && !Array.isArray(defaultConfig[key as keyof Config])) {
-        merged[key as keyof Config] = mergeConfig(
-          userConfig[key] as Partial<Config>,
-          defaultConfig[key as keyof Config] as Config
-        ) as Config[keyof Config];
+      const userValue = userConfig[key];
+      const defaultVal = defaultConfig[key];
+      
+      if (typeof userValue === 'object' && userValue !== null &&
+        typeof defaultVal === 'object' && defaultVal !== null &&
+        !Array.isArray(userValue) && !Array.isArray(defaultVal)) {
+        merged[key] = mergeConfig(
+          userValue as Partial<Config>,
+          defaultVal as Config
+        );
       } else {
-        merged[key as keyof Config] = userConfig[key] as Config[keyof Config];
+        merged[key] = userValue;
       }
     }
   }

@@ -1,6 +1,6 @@
-import logger from './logger.js';
-import type { DOMCacheEntry, ElementStructure, BatchUpdateCallback } from '../types/index.js';
-import { isDOMCacheEntry } from '../types/index.js';
+import logger from './logger';
+import type { DOMCacheEntry, ElementStructure, BatchUpdateCallback } from '../types';
+import { isDOMCacheEntry } from '../types';
 
 const domCache = new Map<string, DOMCacheEntry>();
 const cacheExpiry = 5000;
@@ -38,7 +38,10 @@ const validateCacheEntry = isDevMode ? isDOMCacheEntry : isValidCacheEntry;
 
 function generateCacheKey(selector: string | RegExp, parent: HTMLElement | Document = document): string {
   const selectorStr = typeof selector === 'string' ? selector : selector.toString();
-  const parentStr = parent === document ? 'document' : parent.id || parent.className || parent.tagName;
+  let parentStr = 'document';
+  if (parent !== document && 'id' in parent) {
+    parentStr = parent.id || parent.className || parent.tagName;
+  }
   return `${selectorStr}_${parentStr}`;
 }
 
@@ -317,14 +320,14 @@ export function removeClass(element: HTMLElement, className: string | string[]):
   }
 }
 
-export function addEvent<K extends keyof HTMLElementEventMap>(
-  element: HTMLElement,
-  eventType: K,
-  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void,
-  options?: AddEventListenerOptions
+export function addEvent(
+  element: EventTarget,
+  eventType: string,
+  handler: EventListenerOrEventListenerObject,
+  options?: AddEventListenerOptions | boolean
 ): void {
   try {
-    if (element && element.addEventListener) {
+    if (element && 'addEventListener' in element) {
       element.addEventListener(eventType, handler, options);
     }
   } catch (error) {
@@ -332,14 +335,14 @@ export function addEvent<K extends keyof HTMLElementEventMap>(
   }
 }
 
-export function removeEvent<K extends keyof HTMLElementEventMap>(
-  element: HTMLElement,
-  eventType: K,
-  handler: (this: HTMLElement, ev: HTMLElementEventMap[K]) => void,
-  options?: EventListenerOptions
+export function removeEvent(
+  element: EventTarget,
+  eventType: string,
+  handler: EventListenerOrEventListenerObject,
+  options?: EventListenerOptions | boolean
 ): void {
   try {
-    if (element && element.removeEventListener) {
+    if (element && 'removeEventListener' in element) {
       element.removeEventListener(eventType, handler, options);
     }
   } catch (error) {
@@ -355,9 +358,12 @@ export function delegateEvent<K extends keyof HTMLElementEventMap>(
 ): void {
   try {
     parent.addEventListener(eventType, (e) => {
-      const target = e.target.closest<HTMLElement>(selector);
-      if (target) {
-        handler.call(target, e);
+      const target = e.target as HTMLElement | null;
+      if (target && 'closest' in target) {
+        const matchedTarget = target.closest<HTMLElement>(selector);
+        if (matchedTarget) {
+          handler.call(matchedTarget, e);
+        }
       }
     });
   } catch (error) {

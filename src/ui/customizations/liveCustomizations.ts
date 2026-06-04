@@ -1,6 +1,6 @@
-import { findElementsByClassPattern, findElementsByStructure } from '../../utils/dom.ts';
-import logger from '../../utils/logger.ts';
-import type UIManager from '../../ui_manager.ts';
+import { findElementsByClassPattern, findElementsByStructure } from '../../utils/dom';
+import logger from '../../utils/logger';
+import type UIManager from '../../ui_manager';
 
 export function applyLiveCustomizations(uiManager: UIManager): void {
   logger.info('应用直播间界面定制');
@@ -25,10 +25,11 @@ export function applyLiveCustomizations(uiManager: UIManager): void {
     const animatedElements = document.body.querySelectorAll('div');
     const potentialGiftAnims = Array.from(animatedElements).filter(el => {
       const style = window.getComputedStyle(el);
+      const zIndex = parseInt(style.zIndex) || 0;
       return (style.animationName !== 'none' ||
         style.transitionProperty.includes('transform') ||
         style.transform !== 'none') &&
-        parseInt(style.zIndex) > 100 &&
+        zIndex > 100 &&
         style.position === 'absolute';
     });
 
@@ -56,9 +57,10 @@ export function applyLiveCustomizations(uiManager: UIManager): void {
     const bulletElements = document.body.querySelectorAll('div');
     const potentialBullets = Array.from(bulletElements).filter(el => {
       const style = window.getComputedStyle(el);
+      const zIndex = parseInt(style.zIndex) || 0;
       return style.position === 'absolute' &&
              style.pointerEvents === 'none' &&
-             style.zIndex > 0;
+             zIndex > 0;
     });
     if (potentialBullets.length > 0) return potentialBullets;
     return uiManager.findElementsByClassPattern(/danmu|bullet|comment|danmaku/i);

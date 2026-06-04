@@ -1,58 +1,18 @@
-export * from './dom.ts';
+export * from './dom';
 
-export * from './storage.ts';
+export * from './storage';
 
-export { Logger } from './logger.ts';
-export { default as logger } from './logger.ts';
+export { Logger } from './logger';
+export { default as logger } from './logger';
 
-export { EventEmitter } from './eventEmitter.ts';
-export { default as eventEmitter } from './eventEmitter.ts';
+export { EventEmitter } from './eventEmitter';
+export { default as eventEmitter } from './eventEmitter';
 
-export { PerformanceMonitor } from './performance.ts';
-export { default as performanceMonitor } from './performance.ts';
+export { PerformanceMonitor } from './performance';
+export { default as performanceMonitor } from './performance';
 
-export { default as autoExecutor } from './autoExecutor.ts';
+export { default as autoExecutor } from './autoExecutor';
 
-export const utils = {
-  debounce,
-  throttle,
-  getElement,
-  getElements,
-  findElementsByClassPattern,
-  findElementsByStructure,
-  toggleElements,
-  addClass,
-  removeClass,
-  addEvent,
-  removeEvent,
-  createElement,
-  injectStyle,
-  
-  getItem,
-  setItem,
-  removeItem,
-  clearAll,
-  getNestedItem,
-  setNestedItem,
-  getMultipleItems,
-  setMultipleItems,
-  removeMultipleItems,
-  hasItem,
-  getAllKeys,
-  getStorageInfo,
-  getPrefixedKey,
-  NamespacedStorage,
-  
-  Logger,
-  logger,
-  
-  EventEmitter,
-  eventEmitter,
-  
-  PerformanceMonitor,
-  performanceMonitor,
-  
-  autoExecutor
-};
-
-export default utils;
+export * from './pageObserver';
+export * from './styleGenerator';
+export * from './buttonDetector';

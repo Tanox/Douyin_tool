@@ -7,7 +7,7 @@ export function makePanelDraggable(panel: HTMLElement): void {
   let isDragging = false;
   let offsetX: number, offsetY: number;
 
-  header.addEventListener('mousedown', (e: MouseEvent) => {
+  (header as any).addEventListener('mousedown', (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
 
     isDragging = true;
@@ -44,7 +44,7 @@ export function makePanelDraggable(panel: HTMLElement): void {
     restrictPanelToViewport(panel);
   });
 
-  header.addEventListener('touchstart', (e: TouchEvent) => {
+  (header as any).addEventListener('touchstart', (e: TouchEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
     isDragging = true;
     const touch = e.touches[0];

@@ -1,6 +1,6 @@
-import { logger } from '../utils/logger.ts';
-import { getElement, getElements, createElement } from '../utils/dom.ts';
-import elementController from './elementController.ts';
+import logger from '../utils/logger';
+import { getElement, getElements, createElement } from '../utils/dom';
+import elementController from './elementController';
 
 interface LayoutRule {
   selector: string;
