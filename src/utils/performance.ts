@@ -1,4 +1,4 @@
-import logger from './logger.js';
+import logger from './logger';
 
 interface PerformanceMonitorOptions {
   enableFpsMonitor?: boolean;
@@ -95,7 +95,7 @@ class PerformanceMonitor {
 
     this.isMonitoring = true;
 
-    if (this.enableFpsMonitor && window.requestAnimationFrame) {
+    if (this.enableFpsMonitor && typeof window.requestAnimationFrame === 'function') {
       this.lastTime = performance.now();
       this.frameCount = 0;
       this._startFpsMonitoring();
@@ -276,10 +276,10 @@ class PerformanceMonitor {
       if (!health.isHealthy) {
         callback(health);
       }
-    }, 5000);
+    }, 5000) as unknown as number;
 
     return {
-      stop: () => clearInterval(checkInterval)
+      stop: () => clearInterval(checkInterval as unknown as number)
     };
   }
 }

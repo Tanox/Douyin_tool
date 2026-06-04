@@ -1,5 +1,7 @@
-export { ThemeManager } from './theme.ts';
-export { default as themeManager } from './theme.ts';
+import { ThemeManager } from './theme';
+import themeManager from './theme';
+
+export { ThemeManager, themeManager };
 
 export const styles = {
   ThemeManager,

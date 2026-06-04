@@ -1,4 +1,4 @@
-import type { LoggerOptions, LogEntry } from '../types/index.js';
+import type { LoggerOptions, LogEntry } from '../types';
 
 class Logger {
   private prefix: string;

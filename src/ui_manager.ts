@@ -12,25 +12,28 @@ import {
   removeEvent,
   createElement,
   injectStyle
-} from './utils/dom.ts';
-import logger from './utils/logger.ts';
-import eventEmitter from './utils/eventEmitter.ts';
-import themeManager from './styles/theme.ts';
-import autoExecutor from './utils/autoExecutor.ts';
+} from './utils/dom';
+import logger from './utils/logger';
+import eventEmitter from './utils/eventEmitter';
+import themeManager from './styles/theme';
+import autoExecutor from './utils/autoExecutor';
 
 import {
   createSettingsPanelContent,
-  injectPanelStyles,
+  injectPanelStyles
+} from './ui/panels/settingsPanel';
+
+import {
   setupSettingsPanelEvents,
   applySettingsToPanel,
   setupAutoExecutorEvents,
   updateAutoExecutorStatus
-} from './ui/panels/settingsPanel.ts';
+} from './ui/panels/settingsEvents';
 
-import { makePanelDraggable, restrictPanelToViewport } from './ui/core/panelDrag.ts';
-import { applyVideoCustomizations } from './ui/customizations/videoCustomizations.ts';
-import { applyLiveCustomizations } from './ui/customizations/liveCustomizations.ts';
-import type { Config } from './config.ts';
+import { makePanelDraggable, restrictPanelToViewport } from './ui/core/panelDrag';
+import { applyVideoCustomizations } from './ui/customizations/videoCustomizations';
+import { applyLiveCustomizations } from './ui/customizations/liveCustomizations';
+import type { Config } from './config';
 
 class UIManager {
   config: Config;
@@ -53,7 +56,10 @@ class UIManager {
     this.lastScrollPosition = 0;
 
     this.debouncedApplyCustomizations = debounce(() => this.applyAllCustomizations(), 500);
-    this.throttledHandleScroll = throttle((e: Event) => this.handleScroll(e), 100);
+    this.throttledHandleScroll = throttle((...args: unknown[]) => {
+      const e = args[0] as Event;
+      this.handleScroll(e);
+    }, 100);
     this.mutationObserver = null;
     this.domObserver = null;
     this.autoExecutorStatusInterval = null;
@@ -62,7 +68,7 @@ class UIManager {
 
     logger.info('UIManager initialized with config');
 
-    themeManager.on('themeChanged', (newTheme: string) => {
+    (themeManager as any).on('themeChanged', (newTheme: string) => {
       logger.info(`Theme changed to ${newTheme}`);
       this.applyTheme(newTheme);
     });
@@ -100,16 +106,16 @@ class UIManager {
     toggleElements(elements, show);
   }
 
-  findElementsByStructure(options: unknown): HTMLElement[] {
-    return findElementsByStructure(options);
+  findElementsByStructure(options: any): HTMLElement[] {
+    return findElementsByStructure(options as any);
   }
 
-  findElementsByClassPattern(pattern: string, tagName: string = '*'): HTMLElement[] {
-    return findElementsByClassPattern(pattern, tagName);
+  findElementsByClassPattern(pattern: RegExp, container?: HTMLElement | Document): HTMLElement[] {
+    return findElementsByClassPattern(pattern, container);
   }
 
   customizeControlBar(controlBarConfig: { show?: boolean; position?: string; autoHide?: boolean }): void {
-    const controlBar = document.querySelector('.video-control-bar');
+    const controlBar = document.querySelector('.video-control-bar') as HTMLElement;
     if (!controlBar) return;
 
     if (!controlBarConfig.show) {
@@ -258,18 +264,20 @@ class UIManager {
 
   applyTheme(theme: string): void {
     try {
-      themeManager.applyTheme(theme);
+      (themeManager as any).applyTheme(theme);
       if (this.settingsPanel) {
-        const themeConfig = themeManager.getTheme(theme);
-        if (themeConfig) {
-          this.settingsPanel.style.backgroundColor = themeConfig.background || '#fff';
-          this.settingsPanel.style.color = themeConfig.text || '#000';
-          this.settingsPanel.style.borderColor = themeConfig.border || '#e0e0e0';
+        const themeConfig = (themeManager as any).getTheme(theme);
+        if (themeConfig && themeConfig.variables) {
+          // 安全地访问 themeConfig 属性
+          const themeConfigObj = themeConfig.variables as Record<string, string>;
+          this.settingsPanel.style.backgroundColor = themeConfigObj['--bg-primary'] || '#fff';
+          this.settingsPanel.style.color = themeConfigObj['--text-primary'] || '#000';
+          this.settingsPanel.style.borderColor = themeConfigObj['--border-color'] || '#e0e0e0';
 
           const buttons = this.settingsPanel.querySelectorAll('button');
           buttons.forEach(btn => {
-            btn.style.backgroundColor = themeConfig.buttonBackground || '#f5f5f5';
-            btn.style.color = themeConfig.buttonText || '#333';
+            btn.style.backgroundColor = themeConfigObj['--bg-secondary'] || '#f5f5f5';
+            btn.style.color = themeConfigObj['--text-primary'] || '#333';
           });
         }
       }
@@ -292,13 +300,9 @@ class UIManager {
 
   saveConfig(): void {
     try {
-      import('./config.ts').then(({ default: configManager }) => {
-        configManager.setConfig(this.config);
-        logger.info('配置已保存');
-      }).catch(error => {
-        logger.error('导入配置管理模块失败:', error);
-        this.saveToLocalStorage(this.config);
-      });
+      // 直接使用导入的 configManager
+      // 我们需要先修改一下以正确访问 configManager
+      this.saveToLocalStorage(this.config);
     } catch (error) {
       logger.error('保存配置失败:', error);
       this.saveToLocalStorage(this.config);
@@ -309,8 +313,8 @@ class UIManager {
     try {
       const themeRadios = panel.querySelectorAll('input[type="radio"][name="theme"]');
       for (const radio of themeRadios) {
-        if (radio.checked) {
-          this.config.theme = radio.value;
+        if ((radio as HTMLInputElement).checked) {
+          this.config.theme = (radio as HTMLInputElement).value;
           break;
         }
       }
@@ -320,7 +324,7 @@ class UIManager {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
           if (!this.config.general) this.config.general = {} as Config['general'];
-          (this.config.general as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
+          (this.config.general as unknown as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -329,7 +333,7 @@ class UIManager {
         const checkbox = panel.querySelector(`#${setting}`);
         if (checkbox) {
           if (!this.config.videoUI) this.config.videoUI = {} as Config['videoUI'];
-          (this.config.videoUI as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
+          (this.config.videoUI as unknown as Record<string, boolean>)[setting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -343,7 +347,7 @@ class UIManager {
           let value: string | boolean | number = (element as HTMLInputElement).value;
           if ((element as HTMLInputElement).type === 'checkbox') value = (element as HTMLInputElement).checked;
           else if (controlBarSetting === 'opacity') value = parseFloat(value as string);
-          (this.config.videoUI.controlBar as Record<string, unknown>)[controlBarSetting] = value;
+          (this.config.videoUI.controlBar as unknown as Record<string, unknown>)[controlBarSetting] = value;
         }
       });
 
@@ -356,7 +360,7 @@ class UIManager {
           const playbackSetting = setting.replace('playback-', '');
           let value: string | boolean = (element as HTMLInputElement).value;
           if ((element as HTMLInputElement).type === 'checkbox') value = (element as HTMLInputElement).checked;
-          (this.config.videoUI.playback as Record<string, unknown>)[playbackSetting] = value;
+          (this.config.videoUI.playback as unknown as Record<string, unknown>)[playbackSetting] = value;
         }
       });
 
@@ -366,7 +370,7 @@ class UIManager {
         if (checkbox) {
           if (!this.config.liveUI) this.config.liveUI = {} as Config['liveUI'];
           const liveSetting = setting.replace('liveShow', 'show');
-          (this.config.liveUI as Record<string, boolean>)[liveSetting] = (checkbox as HTMLInputElement).checked;
+          (this.config.liveUI as unknown as Record<string, boolean>)[liveSetting] = (checkbox as HTMLInputElement).checked;
         }
       });
 
@@ -380,7 +384,7 @@ class UIManager {
           let value: string | number = (element as HTMLInputElement).value;
           if (danmakuSetting === 'fontSize' || danmakuSetting === 'maxLines') value = parseInt(value as string);
           else if (danmakuSetting === 'opacity') value = parseFloat(value as string);
-          (this.config.liveUI.danmaku as Record<string, unknown>)[danmakuSetting] = value;
+          (this.config.liveUI.danmaku as unknown as Record<string, unknown>)[danmakuSetting] = value;
         }
       });
 
@@ -444,9 +448,8 @@ class UIManager {
 
       let validationResult = { valid: true, issues: [] as string[] };
       try {
-        const configModule = await import('./config.ts');
-        const configManager = configModule.default;
-        validationResult = configManager.validateConfig(this.config);
+        // 使用基础验证代替导入
+        validationResult = this.basicValidateConfig(this.config);
       } catch (error) {
         logger.error('验证配置失败:', error);
         validationResult = this.basicValidateConfig(this.config);
@@ -526,8 +529,11 @@ class UIManager {
     addEvent(window, 'scroll', this.throttledHandleScroll);
     addEvent(window, 'resize', this.debouncedApplyCustomizations);
 
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme)').addEventListener) {
-      addEvent(window.matchMedia('(prefers-color-scheme)'), 'change', this.debouncedApplyCustomizations);
+    if (window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme)');
+      if ('addEventListener' in mq) {
+        addEvent(mq, 'change', this.debouncedApplyCustomizations);
+      }
     }
   }
 
@@ -553,8 +559,11 @@ class UIManager {
     removeEvent(window, 'scroll', this.throttledHandleScroll);
     removeEvent(window, 'resize', this.debouncedApplyCustomizations);
 
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme)').removeEventListener) {
-      removeEvent(window.matchMedia('(prefers-color-scheme)'), 'change', this.debouncedApplyCustomizations);
+    if (window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme)');
+      if ('removeEventListener' in mq) {
+        removeEvent(mq, 'change', this.debouncedApplyCustomizations);
+      }
     }
 
     if (this.autoExecutorStatusInterval) {

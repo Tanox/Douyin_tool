@@ -1,6 +1,6 @@
-import { createElement, injectStyle } from '../../utils/dom.ts';
-import logger from '../../utils/logger.ts';
-import type { Config } from '../../config.ts';
+import { createElement, injectStyle } from '../../utils/dom';
+import logger from '../../utils/logger';
+import type { Config } from '../../config';
 
 export function createSettingsPanelContent(config: Config): string {
   return `
@@ -310,7 +310,7 @@ export function createAdvancedSettings(config: Config): string {
     <div class="setting-group">
       <h3>自定义脚本</h3>
       <div id="custom-scripts-list">
-        ${(config.advanced?.customScripts ?? []).map((script, index) => `
+        ${(config.advanced?.customScripts ?? []).map((script: string, index: number) => `
           <div class="script-item">
             <input type="text" value="${script}" data-index="${index}" placeholder="脚本URL或代码" />
             <button class="remove-script" data-index="${index}">删除</button>

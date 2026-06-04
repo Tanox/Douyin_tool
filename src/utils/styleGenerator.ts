@@ -1,7 +1,7 @@
-import { injectStyle } from './dom.ts';
-import logger from './logger.ts';
-import eventEmitter from './eventEmitter.ts';
-import type { Config } from '../config.ts';
+import { injectStyle } from './dom';
+import logger from './logger';
+import eventEmitter from './eventEmitter';
+import type { Config } from '../config';
 
 export function generateCustomStyles(config: Config): string {
   let customCSS = '';

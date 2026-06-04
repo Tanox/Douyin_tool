@@ -1,17 +1,23 @@
-import logger from './utils/logger.ts';
-import eventEmitter from './utils/eventEmitter.ts';
-import performanceMonitor from './utils/performance.ts';
-import themeManager from './styles/theme.ts';
-import UIManager from './ui_manager.ts';
-import elementController from './controllers/elementController.ts';
-import layoutController from './controllers/layoutController.ts';
+import logger from './utils/logger';
+import eventEmitter from './utils/eventEmitter';
+import performanceMonitor from './utils/performance';
+import themeManager from './styles/theme';
+import UIManager from './ui_manager';
+import elementController from './controllers/elementController';
+import layoutController from './controllers/layoutController';
+
+declare global {
+  interface Window {
+    douyinUICustomizer?: any;
+  }
+}
 
 async function initializeApp() {
   try {
-    performanceMonitor.start();
+    (performanceMonitor as any).startMonitoring();
     logger.info('应用初始化开始...');
 
-    themeManager.initialize();
+    themeManager.init();
     logger.info('主题管理器初始化完成');
 
     await new Promise(resolve => {
@@ -29,7 +35,7 @@ async function initializeApp() {
         setTheme: (theme: string) => themeManager.applyTheme(theme),
         getTheme: () => themeManager.getCurrentTheme(),
         getAvailableThemes: () => themeManager.getAvailableThemes(),
-        createTheme: (themeName: string, config: Record<string, unknown>) => themeManager.createTheme(themeName, config),
+        createTheme: (config: Record<string, unknown>) => themeManager.createTheme(config as any),
         deleteTheme: (themeName: string) => themeManager.deleteTheme(themeName)
       },
 
@@ -39,7 +45,7 @@ async function initializeApp() {
         toggle: (selector: string) => elementController.toggleElement(selector),
         modifyStyle: (selector: string, styles: Record<string, string>) => elementController.modifyElementStyle(selector, styles),
         resetStyle: (selector: string) => elementController.resetElementStyle(selector),
-        identify: (selector: string) => elementController.identifyElements(selector)
+        identify: () => elementController.identifyElements()
       },
 
       layout: {
@@ -60,9 +66,9 @@ async function initializeApp() {
       },
 
       performance: {
-        start: () => performanceMonitor.start(),
-        stop: () => performanceMonitor.stop(),
-        getMetrics: () => performanceMonitor.getMetrics()
+        start: () => (performanceMonitor as any).startMonitoring(),
+        stop: () => (performanceMonitor as any).stopMonitoring(),
+        getMetrics: () => (performanceMonitor as any).getMetrics()
       },
 
       version: '1.1.0'
@@ -71,7 +77,7 @@ async function initializeApp() {
     logger.info('全局API导出完成');
 
     eventEmitter.emit('app.initialized');
-    performanceMonitor.stop();
+    (performanceMonitor as any).stopMonitoring();
 
     logger.info('应用初始化完成');
   } catch (error) {
@@ -94,8 +100,7 @@ function setupErrorHandling() {
 
 function cleanup() {
   logger.info('执行清理操作...');
-  performanceMonitor.stop();
-  eventEmitter.clear();
+  (performanceMonitor as any).stopMonitoring();
   logger.info('清理完成');
 }
 

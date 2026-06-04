@@ -1,5 +1,5 @@
-import { logger } from '../utils/logger.ts';
-import { getElement, getElements } from '../utils/dom.ts';
+import logger from '../utils/logger';
+import { getElement, getElements } from '../utils/dom';
 
 interface ElementInfo {
   id: string;
@@ -262,7 +262,7 @@ class ElementController {
       
       const importantProperties = ['display', 'opacity', 'transform', 'pointer-events'];
       importantProperties.forEach(prop => {
-        originalStyle[prop] = element.style[prop];
+        originalStyle[prop] = (element.style as any)[prop];
       });
       
       this.originalStyles.set(element, originalStyle);

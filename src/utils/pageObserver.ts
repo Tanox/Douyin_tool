@@ -1,6 +1,6 @@
-import { debounce } from './dom.ts';
-import logger from './logger.ts';
-import type UIManager from '../ui_manager.ts';
+import { debounce } from './dom';
+import logger from './logger';
+import type UIManager from '../ui_manager';
 
 let mutationObserver: MutationObserver | null = null;
 
