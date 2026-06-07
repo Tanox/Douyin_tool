@@ -1,167 +1,117 @@
-# 抖音Web端界面UI定制工具
+# 抖音UI定制工具
 
 [![GitHub stars](https://img.shields.io/github/stars/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/network/members)
 [![License](https://img.shields.io/github/license/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/blob/main/LICENSE)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-green?style=flat-square)](https://www.tampermonkey.net/)
 
-## 项目简介
+抖音Web端界面定制工具，让你可以隐藏礼物特效、调整弹幕样式、切换主题、管理布局等。
 
-抖音Web端界面UI定制工具是一款专注于提升抖音Web端浏览体验的浏览器扩展/用户脚本。通过DOM操作和CSS注入实现界面定制，采用模块化设计，低侵入性，不修改页面核心结构，保证了与抖音官方功能的最大兼容性。
+## 功能
 
-## 功能特性
+### 视频界面
+- 隐藏/显示视频控制栏
+- 调整视频布局大小
+- 显示/隐藏作者信息、音乐信息、推荐内容
+- 播放控制（自动播放、循环播放）
+- 主题切换（浅色/深色/极简）
 
-### 短视频界面定制
-
-- 视频播放控制栏样式自定义
-- 视频显示区域大小调整
-- 作者信息、头像、音乐信息、描述显示控制
-- 界面元素布局调整
-- 播放控制（自动播放、循环）
-- 背景色和主题切换
-
-### 直播间界面定制
-
-- 礼物动画和特效隐藏（增强版）
-- 弹幕样式自定义（字体、颜色、透明度、速度、位置）
-- 聊天区域、礼物面板显示控制
-- 直播间推荐和广告屏蔽
-- 直播画面比例调整
-- 用户评论/礼物通知屏蔽
-- 音量控制
-
-### 主题系统
-
-- 浅色/深色/极简主题
-- 自定义主题创建
-- 主题导入导出
-- 实时主题预览
-
-### 布局管理
-
-- 预设布局方案
-- 自定义布局保存
-- 布局导入导出
-- 响应式布局调整
+### 直播间
+- 隐藏礼物动画和特效
+- 自定义弹幕样式（字体、颜色、透明度、速度）
+- 隐藏广告和推荐内容
+- 控制音量
+- 调整直播画面比例
 
 ### 通用功能
-
-- 设置面板拖拽
-- 配置导出/导入
-- 自动版本更新检查
+- 拖拽调整设置面板位置
+- 导入/导出配置
+- 自动检测更新
 - 性能监控
-- 详细日志系统
 
-## 技术架构
+## 安装
 
-### 核心模块
+1. 安装 [Tampermonkey](https://www.tampermonkey.net/)
+2. [点击安装脚本](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SutChan/douyin_tool/raw/main/dist/douyin_ui_customizer.user.js)
 
-```
-src/
-├── main.js                  # 入口文件，负责模块初始化和协调
-├── index.js                 # 应用入口，导出全局API
-├── config.js                # 配置管理，处理设置存储和加载
-├── ui_manager.js            # UI管理核心，协调各模块与页面的交互
-├── controllers/
-│   ├── elementController.js # 元素控制
-│   └── layoutController.js  # 布局管理
-├── utils/
-│   ├── autoExecutor.js      # 自动执行控制器
-│   ├── dom.js               # DOM操作封装
-│   ├── eventEmitter.js      # 事件总线
-│   ├── logger.js            # 日志系统
-│   ├── performance.js       # 性能监控
-│   └── storage.js           # 存储工具
-└── styles/
-    ├── dark.css             # 暗黑主题
-    ├── default.css          # 默认主题
-    ├── index.js             # 样式管理
-    └── theme.js             # 主题管理器
-```
-
-### 技术实现
-
-- **模块化架构**：采用ES6模块化设计，各功能组件独立分离
-- **事件驱动**：通过事件总线实现模块间解耦通信
-- **配置管理**：localStorage存储，支持导入导出
-- **样式注入**：通过创建style元素动态注入CSS
-- **版本管理**：构建时自动递增版本号
-
-### 兼容性
-
-- Chrome / Edge (Tampermonkey)
-- Firefox (Greasemonkey / Tampermonkey)
-- 其他兼容用户脚本管理器的浏览器
-
-## 快速开始
-
-### 安装
-
-1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 或 [Greasemonkey](https://addons.mozilla.org/zh-CN/firefox/addon/greasemonkey/)
-2. [一键安装脚本](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SutChan/douyin_tool/raw/main/dist/douyin_ui_customizer.user.js)
-
-### 本地开发
-
-```bash
-git clone https://github.com/SutChan/douyin_tool.git
-cd douyin_tool
-npm install
-npm run build
-```
-
-构建完成后，打开 `dist/douyin_ui_customizer.user.js` 并复制内容到油猴中创建新脚本。
-
-## 使用说明
+## 使用
 
 1. 访问 [抖音网页版](https://www.douyin.com/)
-2. 点击油猴图标，选择本脚本设置选项
-3. 在设置面板中调整界面元素
-4. 保存后设置立即生效
+2. 点击页面右下角的设置按钮 ⚙️
+3. 在面板中选择要隐藏或调整的元素
+4. 保存后立即生效
 
-### 礼物隐藏
+### 隐藏礼物特效
 
-进入「直播间设置」，取消勾选「显示礼物动画」即可隐藏所有礼物相关元素。
+进入「直播设置」，关闭「显示礼物动画」即可隐藏所有礼物相关元素。
 
-### 配置管理
+### 调整弹幕样式
 
-- 「导出配置」保存个性化设置
-- 「导入配置」在不同设备间恢复设置
-- 「重置」恢复默认配置
+在「直播设置」的弹幕选项中，可以设置：
+- 字体大小（12-36像素）
+- 弹幕颜色
+- 透明度（0.1-1.0）
+- 移动速度（快速/正常/慢速）
+
+## 配置管理
+
+- **导出配置**：将当前设置保存为文件
+- **导入配置**：从文件恢复设置
+- **重置配置**：恢复所有设置为默认值
 
 ## 项目结构
 
 ```
 douyin_tool/
-├── src/                  # 源代码
-│   ├── controllers/      # 控制器模块
-│   ├── styles/           # 样式文件目录
-│   ├── utils/            # 工具函数目录
-│   ├── config.js         # 配置管理
-│   ├── index.js          # 项目入口文件
-│   ├── main.js           # 主程序逻辑
-│   └── ui_manager.js     # UI管理器
-├── build/                # 构建脚本
-├── dist/                 # 构建产物
-├── docs/                 # 详细文档
-├── openspec/             # 项目规范文档
-├── .trae/                # 项目配置目录
-├── build.js              # 构建脚本
-├── package.json          # 项目配置
-├── README.md             # 项目说明文档
-├── CHANGELOG.md          # 变更日志
-└── LICENSE               # 许可证文件
+├── src/                 # 源代码
+│   ├── controllers/     # 功能控制器
+│   ├── styles/          # 样式和主题
+│   ├── ui/              # 界面组件
+│   ├── utils/           # 工具函数
+│   ├── config.ts        # 配置管理
+│   ├── main.ts          # 入口文件
+│   └── ui_manager.ts    # UI管理器
+├── dist/                # 构建产物
+├── docs/                # 详细文档
+└── package.json         # 项目配置
 ```
 
-## 详细文档
+## 开发
 
-- [安装指南](docs/03-安装指南/README.md)
-- [功能说明](docs/04-功能说明/README.md)
-- [API文档](docs/05-技术文档/api.md)
-- [更新日志](docs/CHANGELOG.md)
+```bash
+# 克隆项目
+git clone https://github.com/SutChan/douyin_tool.git
+cd douyin_tool
+
+# 安装依赖
+npm install
+
+# 本地开发
+npm run dev
+
+# 构建发布版本
+npm run build
+```
+
+构建完成后，打开 `dist/douyin_ui_customizer.user.js` 复制内容到油猴中创建新脚本。
+
+## 兼容性
+
+- Chrome / Edge（需安装 Tampermonkey）
+- Firefox（需安装 Tampermonkey 或 Greasemonkey）
+- 其他支持用户脚本的浏览器
+
+## 更新日志
+
+详细的更新内容请查看 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 许可证
 
 [MIT](LICENSE)
+
+## 问题反馈
+
+如果你遇到问题或有功能建议，请在 [GitHub Issues](https://github.com/SutChan/douyin_tool/issues) 中反馈。
 
 ## 作者
 
