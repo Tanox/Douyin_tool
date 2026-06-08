@@ -71,7 +71,7 @@ async function initializeApp() {
         getMetrics: () => (performanceMonitor as any).getMetrics()
       },
 
-      version: '1.1.0'
+      version: '2.0.4'
     };
 
     logger.info('全局API导出完成');

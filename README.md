@@ -2,11 +2,11 @@
 
 让抖音网页版更好用！可以隐藏礼物特效、调整弹幕样式、切换主题等。
 
-[![GitHub stars](https://img.shields.io/github/stars/SutChan/douyin_tool?style=flat-square)
-[![GitHub forks](https://img.shields.io/github/forks/SutChan/douyin_tool?style=flat-square)
-[![License](https://img.shields.io/github/license/SutChan/douyin_tool?style=flat-square)
-[![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-green?style=flat-square)
-[![Version](https://img.shields.io/badge/version-2.0.3-blue.svg?style=flat-square)](./package.json)
+[![GitHub stars](https://img.shields.io/github/stars/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/network/members)
+[![License](https://img.shields.io/github/license/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/blob/main/LICENSE)
+[![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-green?style=flat-square)](https://www.tampermonkey.net/)
+[![Version](https://img.shields.io/badge/version-2.0.4-blue.svg?style=flat-square)](./package.json)
 
 ## 功能
 
