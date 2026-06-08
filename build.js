@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CONFIG = {
-  distDir: 'dist',
+  buildDir: 'build',
   srcDir: 'src',
   packageFile: 'package.json'
 };
@@ -114,10 +114,10 @@ function buildUserScript() {
       }
     });
 
-    const distDir = path.resolve(CONFIG.distDir);
-    ensureDir(distDir);
+    const buildDir = path.resolve(CONFIG.buildDir);
+    ensureDir(buildDir);
 
-    const outputFile = path.join(distDir, 'douyin_ui_customizer.user.js');
+    const outputFile = path.join(buildDir, 'douyin_ui_customizer.user.js');
     fs.writeFileSync(outputFile, scriptContent, 'utf-8');
 
     console.log(`Build completed: ${outputFile}`);
@@ -125,6 +125,18 @@ function buildUserScript() {
     console.error('Build failed:', error.message);
     console.error(error.stack);
     process.exit(1);
+  }
+}
+
+function cleanupOldDist() {
+  const distDir = path.resolve('dist');
+  if (fs.existsSync(distDir)) {
+    try {
+      fs.rmSync(distDir, { recursive: true, force: true });
+      console.log('Removed old dist directory');
+    } catch (error) {
+      console.warn('Failed to remove dist directory:', error.message);
+    }
   }
 }
 
@@ -151,6 +163,7 @@ function main() {
   }
 
   buildUserScript();
+  cleanupOldDist();
 }
 
 main();
