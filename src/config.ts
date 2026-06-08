@@ -5,7 +5,7 @@ import eventEmitter from './utils/eventEmitter.ts';
 const configStorage = new NamespacedStorage('douyin_tool_config');
 
 const CONFIG_KEY = 'main';
-const CONFIG_VERSION = '2.0.2';
+const CONFIG_VERSION = '2.0.3';
 
 interface DanmakuConfig {
   fontSize: number;
