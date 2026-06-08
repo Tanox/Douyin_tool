@@ -2,6 +2,12 @@
 
 让抖音网页版更好用！可以隐藏礼物特效、调整弹幕样式、切换主题等。
 
+[![GitHub stars](https://img.shields.io/github/stars/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/network/members)
+[![License](https://img.shields.io/github/license/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/blob/main/LICENSE)
+[![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-green?style=flat-square)](https://www.tampermonkey.net/)
+[![Version](https://img.shields.io/badge/version-2.0.4-blue.svg?style=flat-square)](./package.json)
+
 ## 功能
 
 ### 直播功能
@@ -9,16 +15,19 @@
 - **调整弹幕样式** - 修改字体大小、颜色、透明度、移动速度
 - **隐藏广告推荐** - 隐藏直播间的广告和不相关内容
 - **控制音量** - 快速调节直播音量
+- **弹幕位置控制** - 支持弹幕位置、最大行数等高级设置
 
 ### 视频功能
 - **隐藏界面元素** - 可以隐藏点赞、评论、分享等按钮
 - **显示/隐藏信息** - 控制作者信息、音乐信息等是否显示
 - **主题切换** - 支持浅色/深色模式
+- **播放控制** - 自动播放、循环播放等设置
 
 ### 通用功能
 - **拖拽设置面板** - 随意拖动调整位置
 - **导入导出设置** - 备份和恢复你的配置
 - **自动更新** - 有新版本时自动提醒
+- **性能监控** - 实时监控脚本性能表现
 
 ## 安装
 
