@@ -1,117 +1,107 @@
 # 抖音UI定制工具
 
-[![GitHub stars](https://img.shields.io/github/stars/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/network/members)
-[![License](https://img.shields.io/github/license/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/blob/main/LICENSE)
-[![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-green?style=flat-square)](https://www.tampermonkey.net/)
-
-抖音Web端界面定制工具，让你可以隐藏礼物特效、调整弹幕样式、切换主题、管理布局等。
+让抖音网页版更好用！可以隐藏礼物特效、调整弹幕样式、切换主题等。
 
 ## 功能
 
-### 视频界面
-- 隐藏/显示视频控制栏
-- 调整视频布局大小
-- 显示/隐藏作者信息、音乐信息、推荐内容
-- 播放控制（自动播放、循环播放）
-- 主题切换（浅色/深色/极简）
+### 直播功能
+- **隐藏礼物特效** - 隐藏直播间里的礼物动画和特效
+- **调整弹幕样式** - 修改字体大小、颜色、透明度、移动速度
+- **隐藏广告推荐** - 隐藏直播间的广告和不相关内容
+- **控制音量** - 快速调节直播音量
 
-### 直播间
-- 隐藏礼物动画和特效
-- 自定义弹幕样式（字体、颜色、透明度、速度）
-- 隐藏广告和推荐内容
-- 控制音量
-- 调整直播画面比例
+### 视频功能
+- **隐藏界面元素** - 可以隐藏点赞、评论、分享等按钮
+- **显示/隐藏信息** - 控制作者信息、音乐信息等是否显示
+- **主题切换** - 支持浅色/深色模式
 
 ### 通用功能
-- 拖拽调整设置面板位置
-- 导入/导出配置
-- 自动检测更新
-- 性能监控
+- **拖拽设置面板** - 随意拖动调整位置
+- **导入导出设置** - 备份和恢复你的配置
+- **自动更新** - 有新版本时自动提醒
 
 ## 安装
 
-1. 安装 [Tampermonkey](https://www.tampermonkey.net/)
-2. [点击安装脚本](https://www.tampermonkey.net/script_installation.php#url=https://github.com/SutChan/douyin_tool/raw/main/dist/douyin_ui_customizer.user.js)
+### 第一步：安装 Tampermonkey 扩展
 
-## 使用
+根据你的浏览器选择对应版本：
 
-1. 访问 [抖音网页版](https://www.douyin.com/)
-2. 点击页面右下角的设置按钮 ⚙️
-3. 在面板中选择要隐藏或调整的元素
-4. 保存后立即生效
+| 浏览器 | 推荐扩展 |
+|-------|---------|
+| Chrome | [Tampermonkey](https://www.tampermonkey.net/) |
+| Edge | [Tampermonkey](https://www.tampermonkey.net/) |
+| Firefox | [Tampermonkey](https://www.tampermonkey.net/) 或 Greasemonkey |
+
+### 第二步：安装脚本
+
+1. 点击上面的 Tampermonkey 官网链接安装扩展
+2. 安装完成后，点击 [这里安装脚本](https://raw.githubusercontent.com/SutChan/douyin_tool/main/dist/douyin_ui_customizer.user.js)
+3. Tampermonkey 会弹出安装确认，点击"安装"
+
+## 使用方法
+
+1. 打开 [抖音网页版](https://www.douyin.com/)
+2. 进入任意直播间或视频页面
+3. 点击页面右下角的 **⚙️** 按钮打开设置面板
+4. 根据需要勾选要隐藏或调整的选项
+5. 设置会自动保存并立即生效
 
 ### 隐藏礼物特效
 
-进入「直播设置」，关闭「显示礼物动画」即可隐藏所有礼物相关元素。
+1. 打开设置面板
+2. 切换到「直播设置」标签
+3. 找到「显示礼物动画」选项，关闭它
+4. 礼物特效就会被隐藏
 
 ### 调整弹幕样式
 
-在「直播设置」的弹幕选项中，可以设置：
-- 字体大小（12-36像素）
-- 弹幕颜色
-- 透明度（0.1-1.0）
-- 移动速度（快速/正常/慢速）
+1. 打开设置面板
+2. 切换到「直播设置」标签
+3. 找到弹幕相关设置：
+   - **字体大小**：12-36 像素
+   - **弹幕颜色**：输入颜色代码如 #FFFFFF
+   - **透明度**：0.1（很淡）- 1.0（不透明）
+   - **移动速度**：快速 / 正常 / 慢速
 
-## 配置管理
+### 切换主题
 
-- **导出配置**：将当前设置保存为文件
-- **导入配置**：从文件恢复设置
-- **重置配置**：恢复所有设置为默认值
+1. 打开设置面板
+2. 在「通用设置」中找到主题选项
+3. 选择「浅色」或「深色」模式
 
-## 项目结构
+## 常见问题
 
-```
-douyin_tool/
-├── src/                 # 源代码
-│   ├── controllers/     # 功能控制器
-│   ├── styles/          # 样式和主题
-│   ├── ui/              # 界面组件
-│   ├── utils/           # 工具函数
-│   ├── config.ts        # 配置管理
-│   ├── main.ts          # 入口文件
-│   └── ui_manager.ts    # UI管理器
-├── dist/                # 构建产物
-├── docs/                # 详细文档
-└── package.json         # 项目配置
-```
+**Q: 安装后没反应？**
+> 确保 Tampermonkey 扩展已启用，然后刷新抖音页面。
 
-## 开发
+**Q: 如何恢复默认设置？**
+> 打开 Tampermonkey 菜单，选择「抖音UI定制工具」→「重置所有设置」。
 
-```bash
-# 克隆项目
-git clone https://github.com/SutChan/douyin_tool.git
-cd douyin_tool
+**Q: 想备份设置？**
+> 在设置面板中找到「导出配置」，保存到文件。需要恢复时使用「导入配置」。
 
-# 安装依赖
-npm install
+## 更新脚本
 
-# 本地开发
-npm run dev
-
-# 构建发布版本
-npm run build
-```
-
-构建完成后，打开 `dist/douyin_ui_customizer.user.js` 复制内容到油猴中创建新脚本。
+脚本会自动检查更新。如果想手动检查：
+- 点击 Tampermonkey 图标
+- 选择「抖音UI定制工具」→「检查更新」
 
 ## 兼容性
 
-- Chrome / Edge（需安装 Tampermonkey）
-- Firefox（需安装 Tampermonkey 或 Greasemonkey）
-- 其他支持用户脚本的浏览器
-
-## 更新日志
-
-详细的更新内容请查看 [CHANGELOG.md](CHANGELOG.md)。
-
-## 许可证
-
-[MIT](LICENSE)
+支持的浏览器：
+- Chrome
+- Microsoft Edge
+- Firefox
+- 其他基于 Chromium 的浏览器
 
 ## 问题反馈
 
-如果你遇到问题或有功能建议，请在 [GitHub Issues](https://github.com/SutChan/douyin_tool/issues) 中反馈。
+遇到问题或有功能建议？
+👉 [GitHub Issues](https://github.com/SutChan/douyin_tool/issues)
+
+## 许可证
+
+MIT License
 
 ## 作者
 
