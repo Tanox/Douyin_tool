@@ -98,8 +98,6 @@ class AutoExecutor {
     if (this.options.enableLogging) {
       logger.info('AutoExecutor started');
     }
-
-    this.isEmergencyStopped = false;
     this.detectAndClick();
 
     this.checkIntervalId = setInterval(() => {
