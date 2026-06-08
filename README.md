@@ -6,7 +6,7 @@
 [![GitHub forks](https://img.shields.io/github/forks/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/network/members)
 [![License](https://img.shields.io/github/license/SutChan/douyin_tool?style=flat-square)](https://github.com/SutChan/douyin_tool/blob/main/LICENSE)
 [![Tampermonkey](https://img.shields.io/badge/Tampermonkey-Compatible-green?style=flat-square)](https://www.tampermonkey.net/)
-[![Version](https://img.shields.io/badge/version-2.0.4-blue.svg?style=flat-square)](./package.json)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg?style=flat-square)](./package.json)
 
 ## 功能
 
@@ -28,6 +28,20 @@
 - **导入导出设置** - 备份和恢复你的配置
 - **自动更新** - 有新版本时自动提醒
 - **性能监控** - 实时监控脚本性能表现
+
+## 技术架构
+
+本工具采用模块化设计，主要包括以下核心模块：
+
+- **核心入口 (index.ts / main.ts)**: 脚本的起点，负责初始化和加载其他模块。
+- **配置管理 (config.ts)**: 负责用户设置的读取、写入和管理，支持 `localStorage` 持久化。
+- **UI管理器 (ui_manager.ts)**: 负责创建、渲染和管理用户界面元素，包括设置面板、自定义组件等。
+- **控制器模块 (elementController.ts, layoutController.ts)**: 负责监听页面变化和用户交互，驱动UI更新和功能执行。
+- **UI组件系统 (ui/index.ts)**: 提供可复用的UI组件，如按钮、面板、滑块等。
+- **工具函数 (utils/index.ts)**: 封装通用功能，如事件发射器 (`eventEmitter`)、DOM操作 (`dom`)、样式生成 (`styleGenerator`)、性能监控 (`performance`) 等。
+- **样式管理 (styles/index.ts)**: 管理和注入CSS样式，包括主题切换功能 (`theme.ts`)。
+
+整体架构遵循事件驱动和模块化原则，便于扩展和维护。
 
 ## 安装
 
