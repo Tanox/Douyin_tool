@@ -19,7 +19,7 @@ declare global {
   const GM_registerMenuCommand: ((name: string, fn: () => void) => void) | undefined;
 }
 
-const CURRENT_VERSION = '2.0.2';
+const CURRENT_VERSION = '2.0.3';
 const UPDATE_CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
 const storage = new NamespacedStorage('douyin_tool');
