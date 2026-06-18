@@ -22,8 +22,7 @@ export function applyLiveCustomizations(uiManager: UIManager): void {
       })
     );
 
-    const animatedElements = document.body.querySelectorAll('div');
-    const potentialGiftAnims = Array.from(animatedElements).filter(el => {
+    const potentialGiftAnims = uiManager.findElementsByClassPattern(/^(gift|present|reward|award|effect|animation|特效|礼物|打赏|赠送)/i).filter(el => {
       const style = window.getComputedStyle(el);
       const zIndex = parseInt(style.zIndex) || 0;
       return (style.animationName !== 'none' ||
@@ -54,8 +53,8 @@ export function applyLiveCustomizations(uiManager: UIManager): void {
   }, liveUI.showGifts);
 
   uiManager.toggleElement(() => {
-    const bulletElements = document.body.querySelectorAll('div');
-    const potentialBullets = Array.from(bulletElements).filter(el => {
+    const bulletElements = uiManager.findElementsByClassPattern(/danmu|bullet|danmaku|弹幕/i);
+    const potentialBullets = bulletElements.filter(el => {
       const style = window.getComputedStyle(el);
       const zIndex = parseInt(style.zIndex) || 0;
       return style.position === 'absolute' &&
@@ -84,8 +83,8 @@ export function applyLiveCustomizations(uiManager: UIManager): void {
   }, liveUI.showAds);
 
   uiManager.toggleElement(() => {
-    const numberElements = document.body.querySelectorAll('div');
-    const potentialStats = Array.from(numberElements).filter(el => {
+    const numberElements = uiManager.findElementsByClassPattern(/stat|count|number|view|统计|数字|数量/i);
+    const potentialStats = numberElements.filter(el => {
       return /\d+/.test(el.textContent);
     });
     if (potentialStats.length > 0) return potentialStats;

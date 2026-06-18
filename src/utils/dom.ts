@@ -1,6 +1,7 @@
 import logger from './logger';
 import type { DOMCacheEntry, ElementStructure, BatchUpdateCallback } from '../types';
 import { isDOMCacheEntry } from '../types';
+import { NamespacedStorage } from './storage';
 
 const domCache = new Map<string, DOMCacheEntry>();
 const cacheExpiry = 5000;
@@ -16,8 +17,8 @@ const isDevMode = ((): boolean => {
       }
     }
     // 检查本地存储（UserScript 环境）
-    const debugFlag = localStorage.getItem('douyin_tool_debug_mode');
-    return debugFlag === 'true';
+    const debugStorage = new NamespacedStorage('douyin_ui_customizer_debug');
+    return debugStorage.getItem<string>('mode') === 'true';
   } catch {
     return false;
   }
@@ -415,6 +416,15 @@ export function injectStyle(css: string): HTMLStyleElement | null {
     logger.error('注入样式失败:', error);
     return null;
   }
+}
+
+export function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 export function clearDomCache(): void {

@@ -1,5 +1,6 @@
 import logger from '../utils/logger';
 import { getElement, getElements, createElement } from '../utils/dom';
+import { NamespacedStorage } from '../utils/storage';
 import elementController from './elementController';
 
 interface LayoutRule {
@@ -84,13 +85,13 @@ class LayoutController {
   private layouts: Record<string, Layout>;
   private currentLayout: string | null;
   private customLayouts: Record<string, Layout>;
-  private layoutPrefix: string;
+  private storage: NamespacedStorage;
 
   constructor() {
     this.layouts = { ...PREDEFINED_LAYOUTS };
     this.currentLayout = null;
     this.customLayouts = {};
-    this.layoutPrefix = 'douyin_ui_customizer_layout_';
+    this.storage = new NamespacedStorage('douyin_ui_customizer_layout');
     
     this._loadCustomLayouts();
     
@@ -119,7 +120,7 @@ class LayoutController {
 
       this.currentLayout = layoutName;
       
-      localStorage.setItem(`${this.layoutPrefix}current`, layoutName);
+      this.storage.setItem('current', layoutName);
       
       document.body.classList.remove(
         ...Object.keys(this.layouts).map(l => `douyin-ui-customizer-layout-${l}`)
@@ -201,7 +202,7 @@ class LayoutController {
       }
 
       this.currentLayout = null;
-      localStorage.removeItem(`${this.layoutPrefix}current`);
+      this.storage.removeItem('current');
 
       logger.info('布局已重置');
       return true;
@@ -281,18 +282,17 @@ class LayoutController {
 
   private _loadCustomLayouts(): void {
     try {
-      const savedLayouts = localStorage.getItem(`${this.layoutPrefix}custom`);
+      const savedLayouts = this.storage.getItem<Record<string, Layout>>('custom');
       if (savedLayouts) {
-        const layouts = JSON.parse(savedLayouts) as Record<string, Layout>;
         
-        Object.entries(layouts).forEach(([name, layout]) => {
+        Object.entries(savedLayouts).forEach(([name, layout]) => {
           if (!PREDEFINED_LAYOUTS[name]) {
             this.layouts[name] = layout;
             this.customLayouts[name] = layout;
           }
         });
         
-        logger.info(`成功加载 ${Object.keys(layouts).length} 个自定义布局`);
+        logger.info(`成功加载 ${Object.keys(savedLayouts).length} 个自定义布局`);
       }
     } catch (error) {
       logger.error('加载自定义布局失败:', error);
@@ -301,7 +301,7 @@ class LayoutController {
 
   private _saveCustomLayouts(): void {
     try {
-      localStorage.setItem(`${this.layoutPrefix}custom`, JSON.stringify(this.customLayouts));
+      this.storage.setItem('custom', this.customLayouts);
     } catch (error) {
       logger.error('保存自定义布局失败:', error);
     }

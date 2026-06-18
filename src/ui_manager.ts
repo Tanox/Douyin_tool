@@ -13,6 +13,7 @@ import {
   createElement,
   injectStyle
 } from './utils/dom';
+import { NamespacedStorage } from './utils/storage';
 import logger from './utils/logger';
 import eventEmitter from './utils/eventEmitter';
 import themeManager from './styles/theme';
@@ -291,7 +292,8 @@ class UIManager {
 
   saveToLocalStorage(config: Config): void {
     try {
-      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(config));
+      const uiStorage = new NamespacedStorage('douyin_ui_customizer');
+      uiStorage.setItem('config', config);
       logger.info('配置已保存到localStorage');
     } catch (error) {
       logger.error('保存到localStorage失败:', error);
@@ -436,7 +438,10 @@ class UIManager {
             const url = new URL(script);
             const domain = url.hostname;
 
-            if (!allowedDomains.some(allowedDomain => domain.includes(allowedDomain))) {
+            const isTrustedDomain = allowedDomains.some(allowedDomain =>
+              domain === allowedDomain || domain.endsWith('.' + allowedDomain)
+            );
+            if (!isTrustedDomain) {
               const urlConfirmed = confirm(`警告：脚本URL来自非白名单域名 (${domain})，是否确认添加此脚本？`);
               if (!urlConfirmed) return;
             }
@@ -538,6 +543,10 @@ class UIManager {
   }
 
   observeDomChanges(): void {
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+      this.domObserver = null;
+    }
     const observer = new MutationObserver(this.debouncedApplyCustomizations);
     observer.observe(document.body, {
       childList: true,

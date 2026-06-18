@@ -1,5 +1,16 @@
 import type { LoggerOptions, LogEntry } from '../types';
 
+function isProduction(): boolean {
+  try {
+    if (typeof window !== 'undefined' && window.location) {
+      const host = window.location.hostname;
+      return host !== 'localhost' && host !== '127.0.0.1' && host !== '';
+    }
+  } catch {
+  }
+  return true;
+}
+
 class Logger {
   private prefix: string;
   private enableDebug: boolean;
@@ -8,11 +19,13 @@ class Logger {
   private enableError: boolean;
   private logHistory: LogEntry[];
   private maxHistorySize: number;
+  private isProd: boolean;
 
   constructor(options: LoggerOptions = {}) {
     this.prefix = options.prefix || '[抖音UI定制工具]';
-    this.enableDebug = options.enableDebug !== false;
-    this.enableInfo = options.enableInfo !== false;
+    this.isProd = options.enableProduction ?? isProduction();
+    this.enableDebug = this.isProd ? false : (options.enableDebug !== false);
+    this.enableInfo = this.isProd ? false : (options.enableInfo !== false);
     this.enableWarn = options.enableWarn !== false;
     this.enableError = options.enableError !== false;
     this.logHistory = [];
@@ -76,8 +89,8 @@ class Logger {
   }
 
   setLevel(options: Partial<Pick<LoggerOptions, 'enableDebug' | 'enableInfo' | 'enableWarn' | 'enableError'>>): void {
-    this.enableDebug = options.enableDebug !== false;
-    this.enableInfo = options.enableInfo !== false;
+    this.enableDebug = this.isProd ? false : (options.enableDebug !== false);
+    this.enableInfo = this.isProd ? false : (options.enableInfo !== false);
     this.enableWarn = options.enableWarn !== false;
     this.enableError = options.enableError !== false;
     this.debug('日志级别已更新:', options);

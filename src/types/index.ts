@@ -91,6 +91,7 @@ export interface LoggerOptions {
   enableWarn?: boolean;
   enableError?: boolean;
   maxHistorySize?: number;
+  enableProduction?: boolean;
 }
 
 export interface LogEntry {

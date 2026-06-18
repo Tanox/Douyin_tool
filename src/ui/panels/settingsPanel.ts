@@ -1,4 +1,4 @@
-import { createElement, injectStyle } from '../../utils/dom';
+import { createElement, injectStyle, escapeHtml } from '../../utils/dom';
 import logger from '../../utils/logger';
 import type { Config } from '../../config';
 
@@ -6,21 +6,21 @@ export function createSettingsPanelContent(config: Config): string {
   return `
     <div class="panel-header">
       <h2>抖音UI定制设置</h2>
-      <button class="close-btn">×</button>
+      <button class="close-btn" aria-label="关闭设置面板">×</button>
     </div>
     <div class="panel-content">
       <div class="settings-tabs">
         <div>
-          <button class="tab-btn active" data-tab="general">通用设置</button>
-          <button class="tab-btn" data-tab="video">短视频设置</button>
+          <button class="tab-btn active" data-tab="general" aria-label="通用设置">通用设置</button>
+          <button class="tab-btn" data-tab="video" aria-label="短视频设置">短视频设置</button>
         </div>
         <div>
-          <button class="tab-btn" data-tab="live">直播间设置</button>
-          <button class="tab-btn" data-tab="advanced">高级设置</button>
+          <button class="tab-btn" data-tab="live" aria-label="直播间设置">直播间设置</button>
+          <button class="tab-btn" data-tab="advanced" aria-label="高级设置">高级设置</button>
         </div>
         <div>
-          <button class="tab-btn" data-tab="auto-executor">自动执行</button>
-          <button class="tab-btn" data-tab="import-export">导入导出</button>
+          <button class="tab-btn" data-tab="auto-executor" aria-label="自动执行设置">自动执行</button>
+          <button class="tab-btn" data-tab="import-export" aria-label="导入导出配置">导入导出</button>
         </div>
       </div>
       
@@ -50,8 +50,8 @@ export function createSettingsPanelContent(config: Config): string {
     </div>
     <div class="panel-footer">
       <div>
-        <button class="save-btn">保存设置</button>
-        <button class="reset-btn">重置为默认</button>
+        <button class="save-btn" aria-label="保存当前设置">保存设置</button>
+        <button class="reset-btn" aria-label="重置为默认设置">重置为默认</button>
       </div>
     </div>
   `;
@@ -275,14 +275,14 @@ export function createImportExportSettings(): string {
     <div class="setting-group">
       <h3>配置导入</h3>
       <textarea id="importConfig" placeholder="粘贴配置JSON字符串" rows="5" cols="40"></textarea>
-      <button id="importBtn" class="action-btn">导入配置</button>
+      <button id="importBtn" class="action-btn" aria-label="导入配置">导入配置</button>
     </div>
     
     <div class="setting-group">
       <h3>配置导出</h3>
-      <button id="exportBtn" class="action-btn">导出当前配置</button>
+      <button id="exportBtn" class="action-btn" aria-label="导出当前配置">导出当前配置</button>
       <textarea id="exportConfig" placeholder="配置将在这里显示" rows="5" cols="40"></textarea>
-      <button id="copyBtn" class="action-btn">复制到剪贴板</button>
+      <button id="copyBtn" class="action-btn" aria-label="复制配置到剪贴板">复制到剪贴板</button>
     </div>
   `;
 }
@@ -303,21 +303,21 @@ export function createAdvancedSettings(config: Config): string {
     
     <div class="setting-group">
       <h3>自定义CSS</h3>
-      <textarea id="advanced-customCSS" placeholder="输入自定义CSS代码" rows="5" cols="40">${config.advanced?.customCSS ?? ''}</textarea>
+      <textarea id="advanced-customCSS" placeholder="输入自定义CSS代码" rows="5" cols="40">${escapeHtml(config.advanced?.customCSS ?? '')}</textarea>
       <small>注意：自定义CSS可能会影响页面性能</small>
     </div>
-    
+
     <div class="setting-group">
       <h3>自定义脚本</h3>
       <div id="custom-scripts-list">
         ${(config.advanced?.customScripts ?? []).map((script: string, index: number) => `
           <div class="script-item">
-            <input type="text" value="${script}" data-index="${index}" placeholder="脚本URL或代码" />
-            <button class="remove-script" data-index="${index}">删除</button>
+            <input type="text" value="${escapeHtml(script)}" data-index="${String(index)}" placeholder="脚本URL或代码" />
+            <button class="remove-script" data-index="${String(index)}" aria-label="删除第 ${index + 1} 个脚本">删除</button>
           </div>
         `).join('')}
       </div>
-      <button id="add-script">添加脚本</button>
+      <button id="add-script" aria-label="添加自定义脚本">添加脚本</button>
       <small>注意：自定义脚本可能会带来安全风险，请谨慎使用</small>
     </div>
   `;
@@ -340,10 +340,10 @@ export function createAutoExecutorSettings(): string {
       <h3>控制中心</h3>
       <div class="button-group">
         <div>
-          <button id="auto-executor-start" class="ui-button primary">开始执行</button>
-          <button id="auto-executor-stop" class="ui-button secondary">停止执行</button>
+          <button id="auto-executor-start" class="ui-button primary" aria-label="开始自动执行">开始执行</button>
+          <button id="auto-executor-stop" class="ui-button secondary" aria-label="停止自动执行">停止执行</button>
         </div>
-        <button id="auto-executor-emergency" class="ui-button danger">紧急停止</button>
+        <button id="auto-executor-emergency" class="ui-button danger" aria-label="紧急停止">紧急停止</button>
       </div>
     </div>
     
