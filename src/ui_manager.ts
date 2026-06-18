@@ -13,6 +13,7 @@ import {
   createElement,
   injectStyle
 } from './utils/dom';
+import { NamespacedStorage } from './utils/storage';
 import logger from './utils/logger';
 import eventEmitter from './utils/eventEmitter';
 import themeManager from './styles/theme';
@@ -291,7 +292,8 @@ class UIManager {
 
   saveToLocalStorage(config: Config): void {
     try {
-      localStorage.setItem('douyin-ui-customizer-config', JSON.stringify(config));
+      const uiStorage = new NamespacedStorage('douyin_ui_customizer');
+      uiStorage.setItem('config', config);
       logger.info('配置已保存到localStorage');
     } catch (error) {
       logger.error('保存到localStorage失败:', error);

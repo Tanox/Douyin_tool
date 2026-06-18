@@ -83,8 +83,8 @@ export function applyVideoCustomizations(uiManager: UIManager): void {
   }, videoUI.showMusicInfo);
 
   uiManager.toggleElement(() => {
-    const textElements = document.body.querySelectorAll('div');
-    const descriptions = Array.from(textElements).filter(el => {
+    const textElements = uiManager.findElementsByClassPattern(/desc|description|content|title|caption|描述|内容|标题/i);
+    const descriptions = textElements.filter(el => {
       return el.textContent.length > 20 && el.textContent.length < 200 &&
              el.querySelector('img') && el.querySelector('video');
     });

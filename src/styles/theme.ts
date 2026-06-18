@@ -1,5 +1,6 @@
 import logger from '../utils/logger';
 import { injectStyle } from '../utils/dom';
+import { NamespacedStorage } from '../utils/storage';
 
 interface ThemeVariables {
   [key: string]: string;
@@ -100,18 +101,18 @@ class ThemeManager {
   private themes: Record<string, Theme>;
   private currentTheme: string | null;
   private styleElement: HTMLStyleElement | null;
-  private themePrefix: string;
+  private storage: NamespacedStorage;
 
   constructor() {
     this.themes = { ...DEFAULT_THEMES };
     this.currentTheme = null;
     this.styleElement = null;
-    this.themePrefix = 'douyin_ui_customizer_theme_';
+    this.storage = new NamespacedStorage('douyin_ui_customizer_theme');
   }
 
   init(): void {
     try {
-      const savedTheme = localStorage.getItem(`${this.themePrefix}current`);
+      const savedTheme = this.storage.getItem<string>('current');
       
       if (savedTheme && this.themes[savedTheme]) {
         this.switchTheme(savedTheme);
@@ -154,7 +155,7 @@ class ThemeManager {
       
       this.currentTheme = themeName;
       
-      localStorage.setItem(`${this.themePrefix}current`, themeName);
+      this.storage.setItem('current', themeName);
       
       document.body.classList.remove(
         ...Object.keys(this.themes).map(t => `douyin-ui-customizer-theme-${t}`)
@@ -328,7 +329,7 @@ class ThemeManager {
       this.currentTheme = null;
       this.styleElement = null;
       
-      localStorage.removeItem(`${this.themePrefix}current`);
+      this.storage.removeItem('current');
       
       this.init();
       

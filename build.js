@@ -1,10 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
 
 const CONFIG = {
   buildDir: 'build',
   srcDir: 'src',
-  packageFile: 'package.json'
+  packageFile: 'package.json',
+  entryFile: 'src/main.ts'
 };
 
 function readJson(filePath) {
@@ -46,7 +48,7 @@ function ensureDir(dir) {
   }
 }
 
-function buildUserScript() {
+async function buildUserScript() {
   try {
     const pkg = readJson(CONFIG.packageFile);
     const version = pkg.version;
@@ -74,56 +76,36 @@ function buildUserScript() {
 
 `;
 
-    const files = [
-      'src/config.ts',
-      'src/utils/index.ts',
-      'src/utils/dom.ts',
-      'src/utils/logger.ts',
-      'src/utils/storage.ts',
-      'src/utils/eventEmitter.ts',
-      'src/utils/autoExecutor.ts',
-      'src/utils/performance.ts',
-      'src/utils/buttonDetector.ts',
-      'src/utils/pageObserver.ts',
-      'src/utils/styleGenerator.ts',
-      'src/controllers/elementController.ts',
-      'src/controllers/layoutController.ts',
-      'src/styles/index.ts',
-      'src/styles/theme.ts',
-      'src/ui/index.ts',
-      'src/ui/core/panelDrag.ts',
-      'src/ui/panels/settingsPanel.ts',
-      'src/ui/panels/settingsEvents.ts',
-      'src/ui/customizations/videoCustomizations.ts',
-      'src/ui/customizations/liveCustomizations.ts',
-      'src/ui_manager.ts',
-      'src/main.ts'
-    ];
+    ensureDir(path.resolve(CONFIG.buildDir));
 
-    let scriptContent = metadata;
-    files.forEach(file => {
-      const resolvedPath = path.resolve(file);
-      if (fs.existsSync(resolvedPath)) {
-        let content = fs.readFileSync(resolvedPath, 'utf-8');
-        content = content.replace(/from '\.\/(\w+)\.ts'/g, "from './$1.js'");
-        content = content.replace(/from '\.\.\/(\w+)\.ts'/g, "from '../$1.js'");
-        content = content.replace(/from '\.\.\/\.\.\/(\w+)\.ts'/g, "from '../../$1.js'");
-        scriptContent += content + '\n\n';
-      } else {
-        console.warn(`File not found: ${file}`);
-      }
+    // 使用 esbuild 打包 TypeScript 代码
+    const result = await esbuild.build({
+      entryPoints: [CONFIG.entryFile],
+      bundle: true,
+      platform: 'browser',
+      format: 'iife',
+      target: ['es2020'],
+      write: false,
+      sourcemap: false,
+      minifyIdentifiers: false,
+      minifySyntax: false,
+      minifyWhitespace: false,
+      banner: {
+        js: metadata
+      },
+      logLevel: 'warning'
     });
 
-    const buildDir = path.resolve(CONFIG.buildDir);
-    ensureDir(buildDir);
-
-    const outputFile = path.join(buildDir, 'douyin_ui_customizer.user.js');
-    fs.writeFileSync(outputFile, scriptContent, 'utf-8');
+    const outputFile = path.join(CONFIG.buildDir, 'douyin_ui_customizer.user.js');
+    fs.writeFileSync(outputFile, result.outputFiles[0].text, 'utf-8');
 
     console.log(`Build completed: ${outputFile}`);
+    console.log(`Output size: ${(result.outputFiles[0].text.length / 1024).toFixed(2)} KB`);
   } catch (error) {
     console.error('Build failed:', error.message);
-    console.error(error.stack);
+    if (error.errors) {
+      console.error('esbuild errors:', JSON.stringify(error.errors, null, 2));
+    }
     process.exit(1);
   }
 }
@@ -140,7 +122,7 @@ function cleanupOldDist() {
   }
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const bumpType = args[0] || 'patch';
   const increment = args.includes('--increment');
@@ -162,7 +144,7 @@ function main() {
     console.log(`Version: ${newVersion}`);
   }
 
-  buildUserScript();
+  await buildUserScript();
   cleanupOldDist();
 }
 
