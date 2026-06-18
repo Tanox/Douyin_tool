@@ -1,4 +1,4 @@
-import { createElement, injectStyle } from '../../utils/dom';
+import { createElement, injectStyle, escapeHtml } from '../../utils/dom';
 import logger from '../../utils/logger';
 import type { Config } from '../../config';
 
@@ -303,17 +303,17 @@ export function createAdvancedSettings(config: Config): string {
     
     <div class="setting-group">
       <h3>自定义CSS</h3>
-      <textarea id="advanced-customCSS" placeholder="输入自定义CSS代码" rows="5" cols="40">${config.advanced?.customCSS ?? ''}</textarea>
+      <textarea id="advanced-customCSS" placeholder="输入自定义CSS代码" rows="5" cols="40">${escapeHtml(config.advanced?.customCSS ?? '')}</textarea>
       <small>注意：自定义CSS可能会影响页面性能</small>
     </div>
-    
+
     <div class="setting-group">
       <h3>自定义脚本</h3>
       <div id="custom-scripts-list">
         ${(config.advanced?.customScripts ?? []).map((script: string, index: number) => `
           <div class="script-item">
-            <input type="text" value="${script}" data-index="${index}" placeholder="脚本URL或代码" />
-            <button class="remove-script" data-index="${index}">删除</button>
+            <input type="text" value="${escapeHtml(script)}" data-index="${String(index)}" placeholder="脚本URL或代码" />
+            <button class="remove-script" data-index="${String(index)}">删除</button>
           </div>
         `).join('')}
       </div>

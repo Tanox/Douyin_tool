@@ -17,6 +17,12 @@ export function isLivePage(): boolean {
 export function observePageChanges(uiManager: UIManager): void {
   logger.info('开始监听页面变化...');
 
+  if (mutationObserver) {
+    mutationObserver.disconnect();
+    mutationObserver = null;
+    logger.info('已清理已存在的页面监听器');
+  }
+
   const debouncedApplyCustomizations = debounce(() => {
     logger.info('应用UI定制...');
     if (isVideoPage()) {

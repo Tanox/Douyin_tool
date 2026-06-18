@@ -436,7 +436,10 @@ class UIManager {
             const url = new URL(script);
             const domain = url.hostname;
 
-            if (!allowedDomains.some(allowedDomain => domain.includes(allowedDomain))) {
+            const isTrustedDomain = allowedDomains.some(allowedDomain =>
+              domain === allowedDomain || domain.endsWith('.' + allowedDomain)
+            );
+            if (!isTrustedDomain) {
               const urlConfirmed = confirm(`警告：脚本URL来自非白名单域名 (${domain})，是否确认添加此脚本？`);
               if (!urlConfirmed) return;
             }
@@ -538,6 +541,10 @@ class UIManager {
   }
 
   observeDomChanges(): void {
+    if (this.domObserver) {
+      this.domObserver.disconnect();
+      this.domObserver = null;
+    }
     const observer = new MutationObserver(this.debouncedApplyCustomizations);
     observer.observe(document.body, {
       childList: true,

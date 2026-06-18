@@ -417,6 +417,15 @@ export function injectStyle(css: string): HTMLStyleElement | null {
   }
 }
 
+export function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export function clearDomCache(): void {
   domCache.clear();
   logger.info('DOM缓存已清理');

@@ -336,11 +336,37 @@ export function exportConfig(): string {
   }
 }
 
+function safeJsonParse<T = unknown>(input: string): T {
+  const parsed = JSON.parse(input) as T;
+  const seen = new WeakSet();
+  const sanitize = (value: unknown): unknown => {
+    if (value === null || typeof value !== 'object') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value.map(sanitize);
+    }
+    if (seen.has(value as object)) {
+      return undefined;
+    }
+    seen.add(value as object);
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
+      result[key] = sanitize((value as Record<string, unknown>)[key]);
+    }
+    return result;
+  };
+  return sanitize(parsed) as T;
+}
+
 export function importConfig(jsonString: string): boolean {
   try {
-    const config = JSON.parse(jsonString);
+    const config = safeJsonParse<Record<string, unknown>>(jsonString);
 
-    if (typeof config !== 'object' || config === null) {
+    if (typeof config !== 'object' || config === null || Array.isArray(config)) {
       throw new Error('配置格式无效');
     }
 

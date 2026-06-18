@@ -276,7 +276,7 @@ setInterval(() => {
 
 window.addEventListener('unload', cleanup);
 
-const douyinUICustomizer = {
+const douyinUICustomizer = Object.freeze({
   version: CURRENT_VERSION,
   getConfig: () => configManager.getConfig(),
   setConfig: (key: string, value: unknown) => configManager.setConfig(key, value),
@@ -303,29 +303,34 @@ const douyinUICustomizer = {
     }
   },
   cleanup,
-  theme: {
+  theme: Object.freeze({
     apply: (themeName: string) => themeManager.applyTheme(themeName),
     getCurrent: () => themeManager.getCurrentTheme(),
     list: () => themeManager.listThemes()
-  },
+  }),
   on: (event: string, callback: (...args: unknown[]) => void) => eventEmitter.on(event, callback),
   off: (event: string, callback: (...args: unknown[]) => void) => eventEmitter.off(event, callback),
   emit: (event: string, data: unknown) => eventEmitter.emit(event, data),
-  performance: {
+  performance: Object.freeze({
     start: () => (performanceMonitor as any).startMonitoring(),
     stop: () => (performanceMonitor as any).stopMonitoring(),
     getStats: () => (performanceMonitor as any).getMetrics(),
     enableDebug: () => {}
-  },
-  config: {
+  }),
+  config: Object.freeze({
     export: () => configManager.exportConfig(),
     import: (jsonString: string) => configManager.importConfig(jsonString),
     reset: () => configManager.resetConfig(),
     validate: (config: unknown) => configManager.validateConfig(config as any)
-  }
-};
+  })
+});
 
-window.douyinUICustomizer = douyinUICustomizer;
+Object.defineProperty(window, 'douyinUICustomizer', {
+  value: douyinUICustomizer,
+  writable: false,
+  configurable: false,
+  enumerable: true
+});
 
 logger.info('[抖音UI定制工具] 初始化完成，当前版本:', CURRENT_VERSION);
 
